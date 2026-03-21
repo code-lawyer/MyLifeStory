@@ -52,4 +52,19 @@ describe('POST /state/:worldId/update', () => {
         const json = await res.json();
         expect(json.current_state.summary).toContain('New summary');
     });
+
+    test('returns 502 when LLM is unavailable', async () => {
+        // Ensure world file exists (reuse w1.json from previous test)
+        const worldData = { id: 'w1', name: 'Test World', current_state: { summary: 'Old', updated_at: '' } };
+        fs.writeFileSync(path.join(dirs.worlds, 'w1.json'), JSON.stringify(worldData));
+
+        setLLMAdapter(async () => { throw new Error('LLM down'); });
+
+        const res = await fetch(`${server.url}/w1/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiConfig: {} }),
+        });
+        expect(res.status).toBe(502);
+    });
 });

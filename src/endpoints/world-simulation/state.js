@@ -11,16 +11,19 @@ export const router = express.Router();
 
 const STATE_SYSTEM = `You are a world historian. Given a list of world events, write a concise 2-3 sentence summary of the current world state in Chinese. Output plain text only.`;
 
-function getWorldPath(directories, worldId) {
-    return path.join(directories.worlds, sanitize(`${worldId}.json`));
-}
-
 // GET /:worldId
 router.get('/:worldId', async (req, res) => {
     try {
-        const worldPath = getWorldPath(req.user.directories, req.params.worldId);
-        if (!fs.existsSync(worldPath)) return res.status(404).json({ error: 'world_not_found' });
-        const world = JSON.parse(fs.readFileSync(worldPath, 'utf8'));
+        const sanitizedId = sanitize(req.params.worldId);
+        if (!sanitizedId) return res.status(400).json({ error: 'invalid_world_id' });
+        const worldPath = path.join(req.user.directories.worlds, `${sanitizedId}.json`);
+        let world;
+        try {
+            world = JSON.parse(fs.readFileSync(worldPath, 'utf8'));
+        } catch (readErr) {
+            if (readErr.code === 'ENOENT') return res.status(404).json({ error: 'world_not_found' });
+            throw readErr;
+        }
         const events = await readEvents(req.user.directories, req.params.worldId);
         const summaries = await readSummaries(req.user.directories, req.params.worldId);
         res.json({ current_state: world.current_state, event_count: events.events.length, summaries: summaries.summaries });
@@ -35,10 +38,17 @@ router.post('/:worldId/update', async (req, res) => {
     try {
         const dirs = req.user.directories;
         const { apiConfig = {} } = req.body || {};
-        const worldPath = getWorldPath(dirs, req.params.worldId);
-        if (!fs.existsSync(worldPath)) return res.status(404).json({ error: 'world_not_found' });
+        const sanitizedId = sanitize(req.params.worldId);
+        if (!sanitizedId) return res.status(400).json({ error: 'invalid_world_id' });
+        const worldPath = path.join(dirs.worlds, `${sanitizedId}.json`);
 
-        const world = JSON.parse(fs.readFileSync(worldPath, 'utf8'));
+        let world;
+        try {
+            world = JSON.parse(fs.readFileSync(worldPath, 'utf8'));
+        } catch (readErr) {
+            if (readErr.code === 'ENOENT') return res.status(404).json({ error: 'world_not_found' });
+            throw readErr;
+        }
         const events = await readEvents(dirs, req.params.worldId);
         const summaries = await readSummaries(dirs, req.params.worldId);
 
