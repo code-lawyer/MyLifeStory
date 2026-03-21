@@ -9,6 +9,7 @@ export default function PlayerProfilePanel({ worldId, onClose }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    setError(false);
     playerApi.get(worldId)
       .then((p) => {
         setPlayer(p);

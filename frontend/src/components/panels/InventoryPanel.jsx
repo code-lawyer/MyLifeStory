@@ -7,14 +7,19 @@ export default function InventoryPanel({ worldId, onClose }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    setError(false);
     playerApi.get(worldId)
       .then((p) => setInventory(p.inventory || []))
       .catch(() => setError(true));
   }, [worldId]);
 
   async function handleDelete(itemId) {
-    await playerApi.deleteItem(worldId, itemId);
-    setInventory((prev) => prev.filter((i) => i.id !== itemId));
+    try {
+      await playerApi.deleteItem(worldId, itemId);
+      setInventory((prev) => prev.filter((i) => i.id !== itemId));
+    } catch {
+      // Delete failed — leave inventory unchanged
+    }
   }
 
   return (
