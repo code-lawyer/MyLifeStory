@@ -13,6 +13,8 @@ const CHAR_GEN_SYSTEM = `You are a character creation assistant. Generate a stru
 {"name":"","identity":{"description":"","personality":"","background":""},"power_tier":1,"current_state":{"relationship_to_player":"neutral","status":""},"voice":{"style":"","example_lines":[]}}
 Assign a power_tier consistent with the world's power system. Respond only with valid JSON.`;
 
+const CHAR_REFINE_SYSTEM = (section) => `You are a character creation assistant. Update only the "${section}" section and return the complete character card JSON. Respond only with valid JSON.`;
+
 async function generate(req, res, systemPrompt, userContent) {
     const { apiConfig = {} } = req.body;
     let raw;
@@ -23,7 +25,7 @@ async function generate(req, res, systemPrompt, userContent) {
     try { draft = JSON.parse(raw); }
     catch { return res.status(422).json({ error: 'parse_failed', raw }); }
 
-    res.json({ draft });
+    return res.json({ draft });
 }
 
 // POST /world/refine — must be registered before /world to avoid ambiguity
@@ -54,6 +56,5 @@ router.post('/character/refine', async (req, res) => {
     const { draft, section, instruction } = req.body;
     if (!draft || !section || !instruction) return res.status(400).json({ error: 'missing_fields' });
     const userContent = `Current character card:\n${JSON.stringify(draft)}\n\nRefine the "${section}" section: ${instruction}`;
-    const system = `You are a character creation assistant. Update only the "${section}" section and return the complete character card JSON. Respond only with valid JSON.`;
-    await generate(req, res, system, userContent);
+    await generate(req, res, CHAR_REFINE_SYSTEM(section), userContent);
 });
