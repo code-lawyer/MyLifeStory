@@ -44,5 +44,7 @@ export async function callLLM(messages, systemPrompt, apiConfig) {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    const content = data?.choices?.[0]?.message?.content;
+    if (content == null) throw new Error('LLM API returned no content');
+    return content;
 }
