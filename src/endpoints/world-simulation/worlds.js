@@ -3,16 +3,16 @@ import { readWorld, writeWorld, listWorlds, deleteWorld } from './storage/worlds
 
 export const router = express.Router();
 
-// GET /worlds — list all worlds
-router.get('/worlds', async (req, res) => {
+// GET / — list all worlds
+router.get('/', async (req, res) => {
     try {
         const worlds = await listWorlds(req.user.directories);
         res.json(worlds);
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
-// GET /worlds/:worldId
-router.get('/worlds/:worldId', async (req, res) => {
+// GET /:worldId
+router.get('/:worldId', async (req, res) => {
     try {
         const world = await readWorld(req.user.directories, req.params.worldId);
         if (!world) return res.status(404).json({ error: 'world_not_found' });
@@ -20,8 +20,8 @@ router.get('/worlds/:worldId', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
-// POST /worlds — create
-router.post('/worlds', async (req, res) => {
+// POST / — create
+router.post('/', async (req, res) => {
     try {
         const world = req.body;
         if (!world?.id || !world?.name) return res.status(400).json({ error: 'missing_fields', required: ['id', 'name'] });
@@ -30,8 +30,8 @@ router.post('/worlds', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
-// PUT /worlds/:worldId — replace
-router.put('/worlds/:worldId', async (req, res) => {
+// PUT /:worldId — replace
+router.put('/:worldId', async (req, res) => {
     try {
         if (!req.body?.name) return res.status(400).json({ error: 'missing_fields' });
         await writeWorld(req.user.directories, req.params.worldId, req.body);
@@ -39,8 +39,8 @@ router.put('/worlds/:worldId', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
-// DELETE /worlds/:worldId
-router.delete('/worlds/:worldId', async (req, res) => {
+// DELETE /:worldId
+router.delete('/:worldId', async (req, res) => {
     try {
         const world = await readWorld(req.user.directories, req.params.worldId);
         if (!world) return res.status(404).json({ error: 'world_not_found' });

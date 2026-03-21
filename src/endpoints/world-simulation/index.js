@@ -17,4 +17,4 @@ router.use('/state', stateRouter);
 router.use('/player', playerRouter);
 router.use('/scenes', scenesRouter);
 router.use('/generate', generateRouter);
-router.use('/', worldsRouter);
+router.use('/worlds', worldsRouter);

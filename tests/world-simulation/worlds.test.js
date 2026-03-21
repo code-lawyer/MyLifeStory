@@ -2,8 +2,13 @@ import { jest } from '@jest/globals';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import fetch from 'node-fetch';
-import { router } from '../../src/endpoints/world-simulation/worlds.js';
+import express from 'express';
+import { router as worldsRouter } from '../../src/endpoints/world-simulation/worlds.js';
 import { startTestServer } from './helpers.js';
+
+// Mirror the index.js mount pattern: worlds router lives at /worlds
+const router = express.Router();
+router.use('/worlds', worldsRouter);
 
 let server, url, dirs;
 
