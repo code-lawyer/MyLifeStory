@@ -39,6 +39,7 @@ export default function SettingsPage() {
             name="apiKey"
             value={form.apiKey}
             onChange={handleChange}
+            autoComplete="new-password"
             className="border rounded px-3 py-2"
             placeholder="sk-..."
           />
