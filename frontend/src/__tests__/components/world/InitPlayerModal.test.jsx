@@ -40,3 +40,12 @@ it('shows error message when create fails', async () => {
   await userEvent.click(screen.getByRole('button', { name: /开始冒险/ }));
   expect(await screen.findByRole('alert')).toBeInTheDocument();
 });
+
+it('re-enables button after create fails', async () => {
+  vi.spyOn(playerApiModule.playerApi, 'create').mockRejectedValue(new Error('fail'));
+  render(<InitPlayerModal worldId="w1" onCreated={vi.fn()} />);
+  await userEvent.type(screen.getByLabelText(/角色名/i), 'Hero');
+  await userEvent.click(screen.getByRole('button', { name: /开始冒险/ }));
+  await screen.findByRole('alert');
+  expect(screen.getByRole('button', { name: /开始冒险/ })).not.toBeDisabled();
+});

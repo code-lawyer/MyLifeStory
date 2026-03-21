@@ -13,7 +13,7 @@ export default function InitPlayerModal({ worldId, onCreated }) {
     setError(false);
     try {
       const player = await playerApi.create(worldId, {
-        id: `player-${worldId}`,
+        id: crypto.randomUUID(),
         world_id: worldId,
         name: name.trim(),
         status: { health: 100, mental: 100, reputation: 0, current_location: null },
@@ -35,7 +35,7 @@ export default function InitPlayerModal({ worldId, onCreated }) {
             <span>角色名</span>
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); setError(false); }}
               className="border rounded px-3 py-2"
               placeholder="输入角色名"
               autoFocus
