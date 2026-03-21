@@ -22,6 +22,7 @@ router.post('/:worldId', async (req, res) => {
 
 router.put('/:worldId', async (req, res) => {
     try {
+        if (!req.body?.name) return res.status(400).json({ error: 'missing_fields' });
         await writePlayer(req.user.directories, req.params.worldId, req.body);
         res.json(req.body);
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }

@@ -17,6 +17,6 @@ export async function readSummaries(directories, worldId) {
     }
 }
 
-export function writeSummaries(directories, worldId, data) {
+export async function writeSummaries(directories, worldId, data) {
     writeFileAtomicSync(getPath(directories, worldId), JSON.stringify(data, null, 2));
 }

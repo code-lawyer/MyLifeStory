@@ -125,8 +125,9 @@ router.post('/:worldId/compress', async (req, res) => {
             summary: summaryText,
             compressed_at: new Date().toISOString(),
         });
-        await writeEvents(dirs, req.params.worldId, { events: toKeep });
+        // Write summary first — if crash happens before writeEvents, events are still intact and retry is safe
         await writeSummaries(dirs, req.params.worldId, summaries);
+        await writeEvents(dirs, req.params.worldId, { events: toKeep });
 
         res.json({ compressed: toCompress.length, kept: toKeep.length });
     } catch (err) {

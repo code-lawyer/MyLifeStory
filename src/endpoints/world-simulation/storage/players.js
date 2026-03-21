@@ -17,6 +17,6 @@ export async function readPlayer(directories, worldId) {
     }
 }
 
-export function writePlayer(directories, worldId, player) {
+export async function writePlayer(directories, worldId, player) {
     writeFileAtomicSync(getPath(directories, worldId), JSON.stringify(player, null, 2));
 }
