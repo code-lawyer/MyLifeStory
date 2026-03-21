@@ -17,6 +17,7 @@ import InventoryPanel from '../components/panels/InventoryPanel.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
 import InitScenesModal from '../components/world/InitScenesModal.jsx';
+import { useSettingsStore } from '../stores/settingsStore.js';
 
 const NARRATIVE_MODES = [
   { value: 'intimate', label: '亲密 (50% 对话)' },
@@ -36,6 +37,7 @@ export default function WorldPage() {
   const [showProfile, setShowProfile] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
 
+  const { tokenBudget, getApiConfig } = useSettingsStore();
   const { narrativeMode, setNarrativeMode } = useWorldStore();
   const {
     pendingProposal, setPendingProposal, clearProposal,
@@ -83,7 +85,7 @@ export default function WorldPage() {
     try {
       const recentMessages = chatMessagesRef.current.slice(-10).filter(m => m.content);
       if (recentMessages.length === 0) return;
-      const result = await eventsApi.propose(worldId, recentMessages, {});
+      const result = await eventsApi.propose(worldId, recentMessages, getApiConfig());
       if (result.proposal) {
         setPendingProposal(result.proposal);
       }
@@ -161,7 +163,7 @@ export default function WorldPage() {
             playerStatus={player?.status}
             narrativeMode={narrativeMode}
             onTurnComplete={handleTurnComplete}
-            tokenBudget={4096}
+            tokenBudget={tokenBudget}
             characters={characters}
             activeCharacters={activeCharacters}
           />

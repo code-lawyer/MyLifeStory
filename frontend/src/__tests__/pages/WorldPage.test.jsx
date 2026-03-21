@@ -11,6 +11,7 @@ import * as scenesApiModule from '../../api/scenes.js';
 import * as charactersApiModule from '../../api/characters.js';
 import { useEventStore } from '../../stores/eventStore.js';
 import { useChatStore } from '../../stores/chatStore.js';
+import { useSettingsStore } from '../../stores/settingsStore.js';
 
 const mockWorld = {
   id: 'w1', name: 'Iron Fog',
@@ -28,6 +29,7 @@ beforeEach(() => {
   // Reset Zustand event store so turn-counter tests are not order-dependent
   useEventStore.setState({ turnsSinceLastPropose: 0, pendingProposal: null, proposing: false });
   useChatStore.setState({ messages: [], streaming: false, currentWorldId: null });
+  useSettingsStore.setState({ apiUrl: '', apiKey: '', model: '', tokenBudget: 4096 });
 });
 
 function renderPage() {
@@ -121,7 +123,7 @@ it('shows event proposal card after 3 turns complete', async () => {
   expect(eventsApiModule.eventsApi.propose).toHaveBeenCalledWith(
     'w1',
     expect.arrayContaining([expect.objectContaining({ role: 'user' })]),
-    {}
+    expect.objectContaining({ apiUrl: expect.any(String) })
   );
 });
 
@@ -180,4 +182,19 @@ it('shows scene init modal when world has no scenes', async () => {
     </MemoryRouter>
   );
   await waitFor(() => expect(screen.getByText(/创建起始场景/)).toBeInTheDocument());
+});
+
+it('passes tokenBudget from settings to buildContext', async () => {
+  useSettingsStore.setState({ apiUrl: 'https://api.test', apiKey: 'sk-x', model: 'gpt-4', tokenBudget: 8192 });
+  const buildCtxSpy = vi.spyOn(chatApiModule, 'buildContext').mockResolvedValue({
+    systemPrompt: 'sys', trimmedChatHistory: [], mode: 'ensemble',
+  });
+  vi.spyOn(chatApiModule, 'streamChat').mockImplementation(async ({ onDone }) => { onDone(); });
+  renderPage();
+  await waitFor(() => screen.getByText('Iron Fog'));
+  const input = screen.getByRole('textbox');
+  await userEvent.type(input, 'test');
+  await userEvent.click(screen.getByRole('button', { name: /发送/ }));
+  await waitFor(() => expect(buildCtxSpy).toHaveBeenCalled());
+  expect(buildCtxSpy.mock.calls[0][0].tokenBudget).toBe(8192);
 });
