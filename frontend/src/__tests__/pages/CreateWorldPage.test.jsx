@@ -55,3 +55,40 @@ it('shows error alert on 502', async () => {
   await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   expect(screen.getByText(/AI 服务暂时不可用/)).toBeInTheDocument();
 });
+
+it('calls refineDraft and updates draft section after confirming in dialog', async () => {
+  const refinedDraft = { ...mockDraft, foundation: { ...mockDraft.foundation, background: '改良后背景' } };
+  vi.spyOn(worldsApiModule.worldsApi, 'generateDraft').mockResolvedValue({ draft: mockDraft });
+  vi.spyOn(worldsApiModule.worldsApi, 'refineDraft').mockResolvedValue({ draft: refinedDraft });
+
+  renderPage();
+  await userEvent.type(screen.getByPlaceholderText(/描述你想要的世界/), '一个工业城市');
+  await userEvent.click(screen.getByRole('button', { name: /生成世界/ }));
+  await waitFor(() => screen.getByText('基础设定'));
+
+  const refineButtons = screen.getAllByRole('button', { name: '细化' });
+  await userEvent.click(refineButtons[0]);
+
+  const dialogTextarea = screen.getByPlaceholderText(/例如：让这个世界更加黑暗压抑/);
+  await userEvent.type(dialogTextarea, '更加黑暗');
+  await userEvent.click(screen.getByRole('button', { name: '确认细化' }));
+
+  await waitFor(() =>
+    expect(worldsApiModule.worldsApi.refineDraft).toHaveBeenCalledWith(
+      mockDraft, 'foundation', '更加黑暗'
+    )
+  );
+});
+
+it('calls worldsApi.create and navigates on confirm create', async () => {
+  vi.spyOn(worldsApiModule.worldsApi, 'generateDraft').mockResolvedValue({ draft: mockDraft });
+  vi.spyOn(worldsApiModule.worldsApi, 'create').mockResolvedValue({ ...mockDraft });
+
+  renderPage();
+  await userEvent.type(screen.getByPlaceholderText(/描述你想要的世界/), '一个工业城市');
+  await userEvent.click(screen.getByRole('button', { name: /生成世界/ }));
+  await waitFor(() => screen.getByText('确认创建'));
+
+  await userEvent.click(screen.getByRole('button', { name: /确认创建/ }));
+  await waitFor(() => expect(worldsApiModule.worldsApi.create).toHaveBeenCalledTimes(1));
+});

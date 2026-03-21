@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { randomUUID } from '../lib/uuid.js';
 import { worldsApi } from '../api/worlds.js';
@@ -21,6 +21,10 @@ export default function CreateWorldPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // Always-fresh ref to draft — prevents stale closure in handleRefineConfirm
+  const draftRef = useRef(draft);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+
   async function handleGenerate() {
     if (!description.trim()) return;
     setGenerating(true);
@@ -37,24 +41,26 @@ export default function CreateWorldPage() {
 
   const handleRefineConfirm = useCallback(async (additionalDescription) => {
     const section = refiningSection;
+    const currentDraft = draftRef.current; // always-fresh value via ref
     setRefiningSection(null);
     setDraft((prev) => ({ ...prev, _refining: section }));
     try {
-      const { draft: refined } = await worldsApi.refineDraft(draft, section, additionalDescription);
+      const { draft: refined } = await worldsApi.refineDraft(currentDraft, section, additionalDescription);
       setDraft(refined);
     } catch {
       setError('细化失败，请重试');
       setDraft((prev) => { const d = { ...prev }; delete d._refining; return d; });
     }
-  }, [refiningSection, draft]);
+  }, [refiningSection]); // draft removed from deps — ref handles freshness
 
   async function handleCreate() {
-    if (!draft) return;
+    if (!draft || saving) return; // guard against double-submit
     setSaving(true);
     try {
       const { _refining, ...cleanDraft } = draft;
       const worldToSave = { ...cleanDraft, id: cleanDraft.id || randomUUID(), created_at: new Date().toISOString() };
       await worldsApi.create(worldToSave);
+      setSaving(false);
       navigate(`/world/${worldToSave.id}`);
     } catch {
       setError('保存失败，请重试');
