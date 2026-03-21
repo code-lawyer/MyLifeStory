@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import fetch from 'node-fetch';
