@@ -53,7 +53,7 @@ export default function CreateCharacterPage() {
       setError('细化失败，请重试');
       setDraft((prev) => { const d = { ...prev }; delete d._refining; return d; });
     }
-  }, [refiningSection]);
+  }, [refiningSection]); // draft removed from deps — draftRef handles freshness
 
   async function handleCreate() {
     if (!draft || saving) return;
