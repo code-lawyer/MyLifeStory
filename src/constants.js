@@ -43,6 +43,10 @@ export const USER_DIRECTORY_TEMPLATE = Object.freeze({
     files: 'user/files',
     vectors: 'vectors',
     backups: 'backups',
+    worldEvents: 'world-events',
+    worldSummaries: 'world-summaries',
+    scenes: 'scenes',
+    players: 'players',
     sysprompt: 'sysprompt',
     reasoning: 'reasoning',
 });
