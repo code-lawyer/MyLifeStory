@@ -34,4 +34,9 @@ describe('eventStore', () => {
     useEventStore.setState({ proposing: true });
     expect(useEventStore.getState().shouldPropose()).toBe(false);
   });
+
+  it('shouldPropose returns false when a pending proposal exists', () => {
+    useEventStore.setState({ turnsSinceLastPropose: 3, proposing: false, pendingProposal: { narrative: 'X', event_draft: {} } });
+    expect(useEventStore.getState().shouldPropose()).toBe(false);
+  });
 });
