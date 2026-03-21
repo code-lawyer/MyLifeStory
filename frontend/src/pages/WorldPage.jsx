@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
 import { eventsApi } from '../api/events.js';
 import { useEventStore } from '../stores/eventStore.js';
 import { useWorldStore } from '../stores/worldStore.js';
+import { useChatStore } from '../stores/chatStore.js';
 import ChatPane from '../components/chat/ChatPane.jsx';
 import EventProposalCard from '../components/chat/EventProposalCard.jsx';
 import MapPanel from '../components/panels/MapPanel.jsx';
@@ -33,7 +34,12 @@ export default function WorldPage() {
     incrementTurns, setProposing, shouldPropose,
   } = useEventStore();
 
+  const chatMessagesRef = useRef([]);
+  const { messages: chatMessages } = useChatStore();
+  useEffect(() => { chatMessagesRef.current = chatMessages; }, [chatMessages]);
+
   useEffect(() => {
+    useChatStore.getState().clearMessages();
     Promise.all([
       worldsApi.get(worldId),
       playerApi.get(worldId).catch(() => null),
@@ -49,7 +55,9 @@ export default function WorldPage() {
     if (!shouldPropose()) return;
     setProposing(true);
     try {
-      const result = await eventsApi.propose(worldId, [], {});
+      const recentMessages = chatMessagesRef.current.slice(-10).filter(m => m.content);
+      if (recentMessages.length === 0) return;
+      const result = await eventsApi.propose(worldId, recentMessages, {});
       if (result.proposal) {
         setPendingProposal(result.proposal);
       }

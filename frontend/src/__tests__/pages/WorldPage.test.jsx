@@ -8,6 +8,7 @@ import * as playerApiModule from '../../api/player.js';
 import * as eventsApiModule from '../../api/events.js';
 import * as chatApiModule from '../../api/chat.js';
 import { useEventStore } from '../../stores/eventStore.js';
+import { useChatStore } from '../../stores/chatStore.js';
 
 const mockWorld = {
   id: 'w1', name: 'Iron Fog',
@@ -23,6 +24,7 @@ beforeEach(() => {
   vi.restoreAllMocks();
   // Reset Zustand event store so turn-counter tests are not order-dependent
   useEventStore.setState({ turnsSinceLastPropose: 0, pendingProposal: null, proposing: false });
+  useChatStore.setState({ messages: [], streaming: false });
 });
 
 function renderPage() {

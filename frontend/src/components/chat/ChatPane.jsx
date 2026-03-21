@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { buildContext, streamChat } from '../../api/chat.js';
+import { useChatStore } from '../../stores/chatStore.js';
 import Spinner from '../ui/Spinner.jsx';
 
-export default function ChatPane({ worldId, worldData, playerStatus, narrativeMode, onTurnComplete }) {
-  const [messages, setMessages] = useState([]);
+export default function ChatPane({
+  worldId, worldData, playerStatus, narrativeMode,
+  onTurnComplete, tokenBudget = 4096, characters = [], activeCharacters,
+}) {
+  const { messages, streaming, setMessages, setStreaming } = useChatStore();
   const [input, setInput] = useState('');
-  const [streaming, setStreaming] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -19,25 +22,25 @@ export default function ChatPane({ worldId, worldData, playerStatus, narrativeMo
     if (!text || streaming) return;
 
     const userMsg = { role: 'user', content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setInput('');
     setStreaming(true);
 
-    const chatHistory = [...messages, userMsg];
-    // Plain object ref for streaming accumulation — avoids stale closure on index
     const accRef = { current: '' };
 
     try {
       const { systemPrompt, trimmedChatHistory } = await buildContext({
         worldCard: worldData,
-        chatHistory,
-        tokenBudget: 4096,
+        chatHistory: nextMessages,
+        tokenBudget,
         mode: narrativeMode || 'ensemble',
         playerStatus,
+        characters,
+        activeCharacters,
       });
 
-      // Append empty assistant placeholder
-      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+      setMessages([...nextMessages, { role: 'assistant', content: '' }]);
 
       await streamChat({
         worldId,
@@ -47,7 +50,6 @@ export default function ChatPane({ worldId, worldData, playerStatus, narrativeMo
         onDelta: (delta) => {
           accRef.current += delta;
           const accumulated = accRef.current;
-          // Replace the last message (the assistant placeholder) with current text
           setMessages((prev) => {
             const next = [...prev];
             next[next.length - 1] = { role: 'assistant', content: accumulated };
@@ -60,10 +62,7 @@ export default function ChatPane({ worldId, worldData, playerStatus, narrativeMo
         },
       });
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: '（发生错误，请重试）', error: true },
-      ]);
+      setMessages([...nextMessages, { role: 'assistant', content: '（发生错误，请重试）', error: true }]);
       setStreaming(false);
     }
   }
@@ -90,9 +89,7 @@ export default function ChatPane({ worldId, worldData, playerStatus, narrativeMo
             }`}
           >
             {msg.content}
-            {msg.role === 'assistant' && streaming && !msg.content && (
-              <Spinner />
-            )}
+            {msg.role === 'assistant' && streaming && !msg.content && <Spinner />}
           </li>
         ))}
         <div ref={bottomRef} />

@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ChatPane from '../../../components/chat/ChatPane.jsx';
 import * as chatApiModule from '../../../api/chat.js';
+import { useChatStore } from '../../../stores/chatStore.js';
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  useChatStore.setState({ messages: [], streaming: false, currentWorldId: null });
 });
 
 function renderPane(props = {}) {

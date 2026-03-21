@@ -4,7 +4,9 @@ export const useChatStore = create((set) => ({
   messages: [],
   streaming: false,
   currentWorldId: null,
-  setMessages: (messages) => set({ messages }),
+  setMessages: (msgsOrUpdater) => set((s) => ({
+    messages: typeof msgsOrUpdater === 'function' ? msgsOrUpdater(s.messages) : msgsOrUpdater,
+  })),
   appendMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
   setStreaming: (streaming) => set({ streaming }),
   setCurrentWorldId: (id) => set({ currentWorldId: id }),
