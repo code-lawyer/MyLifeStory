@@ -23,7 +23,11 @@ router.post('/build', (req, res) => {
         return res.status(400).json({ error: 'missing_fields' });
     }
 
-    const budget = BUDGETS[mode] || BUDGETS.intimate;
+    if (!BUDGETS[mode]) {
+        return res.status(400).json({ error: 'invalid_mode', valid: Object.keys(BUDGETS) });
+    }
+
+    const budget = BUDGETS[mode];
     const totalChars = tokenBudget * CHARS_PER_TOKEN;
 
     // Build world base section
