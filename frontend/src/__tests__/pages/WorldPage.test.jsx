@@ -7,6 +7,7 @@ import * as worldsApiModule from '../../api/worlds.js';
 import * as playerApiModule from '../../api/player.js';
 import * as eventsApiModule from '../../api/events.js';
 import * as chatApiModule from '../../api/chat.js';
+import * as scenesApiModule from '../../api/scenes.js';
 import { useEventStore } from '../../stores/eventStore.js';
 import { useChatStore } from '../../stores/chatStore.js';
 
@@ -32,6 +33,7 @@ function renderPage() {
   vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
   vi.spyOn(eventsApiModule.eventsApi, 'list').mockResolvedValue({ events: [] });
+  vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [{ id: 's1', name: 'Town', is_locked: false }] });
   return render(
     <MemoryRouter initialEntries={['/world/w1']}>
       <Routes>
@@ -56,6 +58,7 @@ it('shows map panel when clicking map button', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
   vi.spyOn(eventsApiModule.eventsApi, 'list').mockResolvedValue({ events: [] });
+  vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [{ id: 's1', name: 'Town', is_locked: false }] });
   // MapPanel also calls playerApi.get and scenesApi.list — mock both
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
   const { unmount } = render(
@@ -75,6 +78,7 @@ it('shows event proposal card after 3 turns complete', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
   vi.spyOn(eventsApiModule.eventsApi, 'list').mockResolvedValue({ events: [] });
+  vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [{ id: 's1', name: 'Town', is_locked: false }] });
   vi.spyOn(chatApiModule, 'buildContext').mockResolvedValue({
     systemPrompt: 'sys', trimmedChatHistory: [], mode: 'ensemble',
   });
@@ -133,6 +137,7 @@ it('shows player init modal when player is null', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(null);
   vi.spyOn(eventsApiModule.eventsApi, 'list').mockResolvedValue({ events: [] });
+  vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [{ id: 's1', name: 'Town', is_locked: false }] });
   render(
     <MemoryRouter initialEntries={['/world/w1']}>
       <Routes><Route path="/world/:worldId" element={<WorldPage />} /></Routes>
@@ -156,4 +161,17 @@ it('saves chat messages to localStorage after each message', async () => {
   await waitFor(() => expect(screen.getByText('test message')).toBeInTheDocument());
   const stored = JSON.parse(localStorage.getItem('world-sim-chat-w1') || '[]');
   expect(stored.some(m => m.content === 'test message')).toBe(true);
+});
+
+it('shows scene init modal when world has no scenes', async () => {
+  vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
+  vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
+  vi.spyOn(eventsApiModule.eventsApi, 'list').mockResolvedValue({ events: [] });
+  vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [] });
+  render(
+    <MemoryRouter initialEntries={['/world/w1']}>
+      <Routes><Route path="/world/:worldId" element={<WorldPage />} /></Routes>
+    </MemoryRouter>
+  );
+  await waitFor(() => expect(screen.getByText(/创建起始场景/)).toBeInTheDocument());
 });

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
 import { eventsApi } from '../api/events.js';
+import { scenesApi } from '../api/scenes.js';
 import { useEventStore } from '../stores/eventStore.js';
 import { useWorldStore } from '../stores/worldStore.js';
 import { useChatStore } from '../stores/chatStore.js';
@@ -13,6 +14,7 @@ import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
+import InitScenesModal from '../components/world/InitScenesModal.jsx';
 
 const NARRATIVE_MODES = [
   { value: 'intimate', label: '亲密 (50% 对话)' },
@@ -24,6 +26,7 @@ export default function WorldPage() {
   const { worldId } = useParams();
   const [world, setWorld] = useState(null);
   const [player, setPlayer] = useState(null);
+  const [scenes, setScenes] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMap, setShowMap] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -50,9 +53,11 @@ export default function WorldPage() {
       worldsApi.get(worldId),
       playerApi.get(worldId).catch(() => null),
       eventsApi.list(worldId).catch(() => ({ events: [] })),
-    ]).then(([w, p]) => {
+      scenesApi.list(worldId).catch(() => ({ scenes: [] })),
+    ]).then(([w, p, , s]) => {
       setWorld(w);
       setPlayer(p);
+      setScenes(s.scenes || []);
     }).finally(() => setLoading(false));
   }, [worldId]);
 
@@ -162,6 +167,12 @@ export default function WorldPage() {
       {showInventory && <InventoryPanel worldId={worldId} onClose={() => setShowInventory(false)} />}
       {!loading && !player && (
         <InitPlayerModal worldId={worldId} onCreated={(p) => setPlayer(p)} />
+      )}
+      {!loading && scenes !== null && scenes.length === 0 && (
+        <InitScenesModal
+          worldId={worldId}
+          onCreated={(scene) => setScenes([scene])}
+        />
       )}
     </div>
   );
