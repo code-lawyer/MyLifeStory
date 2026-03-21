@@ -4,9 +4,11 @@ import { readPlayer, writePlayer } from './storage/players.js';
 export const router = express.Router();
 
 router.get('/:worldId', async (req, res) => {
-    const player = await readPlayer(req.user.directories, req.params.worldId);
-    if (!player) return res.status(404).json({ error: 'player_not_found' });
-    res.json(player);
+    try {
+        const player = await readPlayer(req.user.directories, req.params.worldId);
+        if (!player) return res.status(404).json({ error: 'player_not_found' });
+        res.json(player);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
 router.post('/:worldId', async (req, res) => {
