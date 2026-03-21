@@ -38,3 +38,24 @@ it('navigates to /create/world when clicking the create button', async () => {
   const link = await screen.findByRole('link', { name: /创建新世界/ });
   expect(link.getAttribute('href')).toBe('/create/world');
 });
+
+it('retry button re-fetches worlds after error', async () => {
+  const listMock = vi.spyOn(worldsApiModule.worldsApi, 'list')
+    .mockRejectedValueOnce(new Error('network error'))
+    .mockResolvedValueOnce([{ id: 'w1', name: 'Iron Fog' }]);
+  renderPage();
+  await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+  await userEvent.click(screen.getByRole('button', { name: /重试/ }));
+  await waitFor(() => expect(screen.getByText('Iron Fog')).toBeInTheDocument());
+  expect(listMock).toHaveBeenCalledTimes(2);
+});
+
+it('world card is a link to the world page', async () => {
+  vi.spyOn(worldsApiModule.worldsApi, 'list').mockResolvedValue([
+    { id: 'w1', name: 'Iron Fog' },
+  ]);
+  renderPage();
+  await waitFor(() => screen.getByText('Iron Fog'));
+  const worldLink = screen.getByRole('link', { name: /Iron Fog/ });
+  expect(worldLink.getAttribute('href')).toBe('/world/w1');
+});

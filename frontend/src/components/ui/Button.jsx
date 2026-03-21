@@ -5,5 +5,5 @@ export default function Button({ children, variant = 'primary', className = '', 
     secondary: 'bg-parchment text-ink border border-ink/20 hover:bg-ink/5 focus:ring-ink',
     ghost: 'text-ink hover:bg-ink/5 focus:ring-ink',
   };
-  return <button className={`${base} ${variants[variant]} ${className}`} {...props}>{children}</button>;
+  return <button className={`${base} ${variants[variant] ?? variants.primary} ${className}`} {...props}>{children}</button>;
 }

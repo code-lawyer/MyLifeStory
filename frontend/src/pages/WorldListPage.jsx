@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import Spinner from '../components/ui/Spinner.jsx';
@@ -9,11 +9,17 @@ export default function WorldListPage() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const loadWorlds = useCallback(() => {
+    setWorlds(null);
+    setError(null);
     worldsApi.list()
       .then(setWorlds)
       .catch((err) => setError(err.message));
   }, []);
+
+  useEffect(() => {
+    loadWorlds();
+  }, [loadWorlds]);
 
   if (error) {
     return (
@@ -21,7 +27,7 @@ export default function WorldListPage() {
         <div role="alert" className="text-red-600 text-center">
           <p className="font-medium">加载失败</p>
           <p className="text-sm">{error}</p>
-          <Button variant="secondary" className="mt-4" onClick={() => window.location.reload()}>重试</Button>
+          <Button variant="secondary" className="mt-4" onClick={loadWorlds}>重试</Button>
         </div>
       </div>
     );
@@ -52,17 +58,17 @@ export default function WorldListPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {worlds.map((world) => (
-              <button
+              <Link
                 key={world.id}
-                onClick={() => navigate(`/world/${world.id}`)}
-                className="text-left p-5 bg-white rounded-lg border border-ink/10 hover:border-ink/30 hover:shadow-md transition-all"
+                to={`/world/${world.id}`}
+                className="block text-left p-5 bg-white rounded-lg border border-ink/10 hover:border-ink/30 hover:shadow-md transition-all"
               >
                 <h2 className="font-bold text-ink text-lg">{world.name}</h2>
                 {world.foundation?.background && (
                   <p className="text-ink/60 text-sm mt-1 line-clamp-2">{world.foundation.background}</p>
                 )}
-                <p className="text-ink/40 text-xs mt-3">{new Date(world.created_at || 0).toLocaleDateString('zh-CN')}</p>
-              </button>
+                <p className="text-ink/40 text-xs mt-3">{world.created_at ? new Date(world.created_at).toLocaleDateString('zh-CN') : '—'}</p>
+              </Link>
             ))}
           </div>
         )}
