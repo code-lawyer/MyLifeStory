@@ -7,7 +7,7 @@ export const router = express.Router();
 // POST /:worldId — stream chat response as SSE
 router.post('/:worldId', async (req, res) => {
     const { systemPrompt, messages, apiConfig = {} } = req.body;
-    if (!systemPrompt || !messages) {
+    if (!systemPrompt || !Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({ error: 'missing_fields' });
     }
 
@@ -19,10 +19,13 @@ router.post('/:worldId', async (req, res) => {
     try {
         await streamLLM(messages, systemPrompt, apiConfig, (delta) => {
             res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+            if (typeof res.flush === 'function') res.flush();
         });
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        if (typeof res.flush === 'function') res.flush();
     } catch (err) {
         res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        if (typeof res.flush === 'function') res.flush();
     }
     res.end();
 });
