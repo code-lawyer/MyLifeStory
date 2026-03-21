@@ -17,7 +17,7 @@ export async function readEvents(directories, worldId) {
     }
 }
 
-export function writeEvents(directories, worldId, data) {
+export async function writeEvents(directories, worldId, data) {
     writeFileAtomicSync(getPath(directories, worldId), JSON.stringify(data, null, 2));
 }
 
