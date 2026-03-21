@@ -97,6 +97,7 @@ it('shows event proposal card after 3 turns complete', async () => {
       event_draft: { id: 'e1', title: 'Storm', description: 'A big storm', impact_scope: 'major', affected_characters: [] },
     },
   });
+  useSettingsStore.setState({ apiUrl: 'http://test-api.example.com' });
 
   render(
     <MemoryRouter initialEntries={['/world/w1']}>
@@ -123,7 +124,7 @@ it('shows event proposal card after 3 turns complete', async () => {
   expect(eventsApiModule.eventsApi.propose).toHaveBeenCalledWith(
     'w1',
     expect.arrayContaining([expect.objectContaining({ role: 'user' })]),
-    expect.objectContaining({ apiUrl: expect.any(String) })
+    expect.objectContaining({ apiUrl: 'http://test-api.example.com' })
   );
 });
 

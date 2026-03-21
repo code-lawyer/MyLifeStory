@@ -6,6 +6,7 @@ import Spinner from '../ui/Spinner.jsx';
 export default function ChatPane({
   worldId, worldData, playerStatus, narrativeMode,
   onTurnComplete, tokenBudget = 4096, characters = [], activeCharacters,
+  apiConfig = {},
 }) {
   const { messages, streaming, setMessages, setStreaming } = useChatStore();
   const [input, setInput] = useState('');
@@ -46,7 +47,7 @@ export default function ChatPane({
         worldId,
         systemPrompt,
         messages: trimmedChatHistory,
-        apiConfig: worldData?.apiConfig || {},
+        apiConfig,
         onDelta: (delta) => {
           accRef.current += delta;
           const accumulated = accRef.current;

@@ -166,6 +166,7 @@ export default function WorldPage() {
             tokenBudget={tokenBudget}
             characters={characters}
             activeCharacters={activeCharacters}
+            apiConfig={getApiConfig()}
           />
           {pendingProposal && (
             <div className="absolute bottom-20 left-0 right-0 px-3">
