@@ -4,6 +4,7 @@ import CreateWorldPage from './pages/CreateWorldPage.jsx';
 import CreateCharacterPage from './pages/CreateCharacterPage.jsx';
 import WorldPage from './pages/WorldPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import WorldArchivePage from './pages/WorldArchivePage.jsx';
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
       <Route path="/create/world" element={<CreateWorldPage />} />
       <Route path="/create/character" element={<CreateCharacterPage />} />
       <Route path="/world/:worldId" element={<WorldPage />} />
+      <Route path="/world/:worldId/archive" element={<WorldArchivePage />} />
       <Route path="/settings" element={<SettingsPage />} />
     </Routes>
   );
