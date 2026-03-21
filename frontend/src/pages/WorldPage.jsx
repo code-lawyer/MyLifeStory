@@ -9,6 +9,8 @@ import { useWorldStore } from '../stores/worldStore.js';
 import { useChatStore } from '../stores/chatStore.js';
 import ChatPane from '../components/chat/ChatPane.jsx';
 import EventProposalCard from '../components/chat/EventProposalCard.jsx';
+import CharacterSelector from '../components/world/CharacterSelector.jsx';
+import { charactersApi } from '../api/characters.js';
 import MapPanel from '../components/panels/MapPanel.jsx';
 import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
@@ -27,6 +29,8 @@ export default function WorldPage() {
   const [world, setWorld] = useState(null);
   const [player, setPlayer] = useState(null);
   const [scenes, setScenes] = useState(null);
+  const [characters, setCharacters] = useState([]);
+  const [activeCharacters, setActiveCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showMap, setShowMap] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -54,10 +58,14 @@ export default function WorldPage() {
       playerApi.get(worldId).catch(() => null),
       eventsApi.list(worldId).catch(() => ({ events: [] })),
       scenesApi.list(worldId).catch(() => ({ scenes: [] })),
-    ]).then(([w, p, , s]) => {
+      charactersApi.listByWorld(worldId).catch(() => []),
+    ]).then(([w, p, , s, chars]) => {
       setWorld(w);
       setPlayer(p);
       setScenes(s.scenes || []);
+      const charList = Array.isArray(chars) ? chars : [];
+      setCharacters(charList);
+      setActiveCharacters(charList.map(c => c.id));
     }).finally(() => setLoading(false));
   }, [worldId]);
 
@@ -121,6 +129,11 @@ export default function WorldPage() {
           <p className="text-xs text-gray-500 uppercase px-2">当前场景</p>
           <p className="text-sm px-2 truncate">{player?.status?.current_location || '未知'}</p>
           <div className="flex-1" />
+          <CharacterSelector
+            characters={characters}
+            active={activeCharacters}
+            onChange={setActiveCharacters}
+          />
           <div className="flex gap-1 px-1">
             <button
               className="flex-1 py-2 text-lg rounded hover:bg-gray-100"
@@ -148,6 +161,9 @@ export default function WorldPage() {
             playerStatus={player?.status}
             narrativeMode={narrativeMode}
             onTurnComplete={handleTurnComplete}
+            tokenBudget={4096}
+            characters={characters}
+            activeCharacters={activeCharacters}
           />
           {pendingProposal && (
             <div className="absolute bottom-20 left-0 right-0 px-3">
