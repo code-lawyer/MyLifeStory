@@ -35,7 +35,7 @@ export default function WorldPage() {
   } = useEventStore();
 
   const chatMessagesRef = useRef([]);
-  const { messages: chatMessages } = useChatStore();
+  const { messages: chatMessages, streaming: chatStreaming } = useChatStore();
   useEffect(() => { chatMessagesRef.current = chatMessages; }, [chatMessages]);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function WorldPage() {
     // Restore persisted history for this world
     try {
       const stored = JSON.parse(localStorage.getItem(`world-sim-chat-${worldId}`) || '[]');
-      if (stored.length > 0) useChatStore.getState().setMessages(stored);
+      if (Array.isArray(stored) && stored.length > 0) useChatStore.getState().setMessages(stored);
     } catch { /* ignore */ }
     Promise.all([
       worldsApi.get(worldId),
@@ -56,11 +56,11 @@ export default function WorldPage() {
   }, [worldId]);
 
   useEffect(() => {
-    if (chatMessages.length === 0) return;
+    if (chatMessages.length === 0 || chatStreaming) return;
     try {
       localStorage.setItem(`world-sim-chat-${worldId}`, JSON.stringify(chatMessages));
     } catch { /* ignore quota */ }
-  }, [worldId, chatMessages]);
+  }, [worldId, chatMessages, chatStreaming]);
 
   const handleTurnComplete = useCallback(async () => {
     incrementTurns();
