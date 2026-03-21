@@ -53,7 +53,10 @@ it('disables send button while streaming', async () => {
   await userEvent.click(screen.getByRole('button', { name: /发送/ }));
   expect(screen.getByRole('button', { name: /发送/ })).toBeDisabled();
   resolveDone();
-  await waitFor(() => expect(screen.getByRole('button', { name: /发送/ })).not.toBeDisabled());
+  // Wait for streaming to end (textarea becomes enabled), then type so button also enables
+  await waitFor(() => expect(screen.getByRole('textbox')).not.toBeDisabled());
+  await userEvent.type(screen.getByRole('textbox'), 'new input');
+  expect(screen.getByRole('button', { name: /发送/ })).not.toBeDisabled();
 });
 
 it('calls onTurnComplete after AI reply finishes', async () => {
