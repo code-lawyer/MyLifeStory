@@ -268,6 +268,11 @@ app.get('/version', async function (_, response) {
 redirectDeprecatedEndpoints(app);
 setupPrivateEndpoints(app);
 
+// SPA fallback: serve index.html for all non-API, non-file GET requests
+app.get('*', (req, res) => {
+    res.sendFile(path.join(serverDirectory, 'public', 'index.html'));
+});
+
 /**
  * Tasks that need to be run before the server starts listening.
  * @returns {Promise<void>}

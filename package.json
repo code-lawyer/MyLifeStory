@@ -126,7 +126,8 @@
         "plugins:update": "node plugins update",
         "plugins:install": "node plugins install",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/jest.config.json",
-        "test:ws": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/jest.config.json --testPathPattern=tests/world-simulation"
+        "test:ws": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/jest.config.json --testPathPattern=tests/world-simulation",
+        "build:frontend": "cd frontend && npm run build"
     },
     "bin": {
         "sillytavern": "./src/server-global.js"
