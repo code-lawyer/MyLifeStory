@@ -5,7 +5,9 @@ import { readPlayer, writePlayer } from './storage/players.js';
 export const router = express.Router();
 
 router.get('/:worldId', async (req, res) => {
-    res.json(await readScenes(req.user.directories, req.params.worldId));
+    try {
+        res.json(await readScenes(req.user.directories, req.params.worldId));
+    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
 router.post('/:worldId', async (req, res) => {
@@ -13,6 +15,7 @@ router.post('/:worldId', async (req, res) => {
         const scene = req.body;
         if (!scene?.id || !scene?.name) return res.status(400).json({ error: 'missing_fields' });
         const data = await readScenes(req.user.directories, req.params.worldId);
+        if (data.scenes.some(s => s.id === scene.id)) return res.status(409).json({ error: 'scene_id_exists' });
         data.scenes.push(scene);
         await writeScenes(req.user.directories, req.params.worldId, data);
         res.status(201).json(scene);
@@ -20,10 +23,12 @@ router.post('/:worldId', async (req, res) => {
 });
 
 router.get('/:worldId/:sceneId', async (req, res) => {
-    const data = await readScenes(req.user.directories, req.params.worldId);
-    const scene = data.scenes.find(s => s.id === req.params.sceneId);
-    if (!scene) return res.status(404).json({ error: 'scene_not_found' });
-    res.json(scene);
+    try {
+        const data = await readScenes(req.user.directories, req.params.worldId);
+        const scene = data.scenes.find(s => s.id === req.params.sceneId);
+        if (!scene) return res.status(404).json({ error: 'scene_not_found' });
+        res.json(scene);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
 router.put('/:worldId/:sceneId', async (req, res) => {
