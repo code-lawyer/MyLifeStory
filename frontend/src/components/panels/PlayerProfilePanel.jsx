@@ -6,16 +6,19 @@ export default function PlayerProfilePanel({ worldId, onClose }) {
   const [player, setPlayer] = useState(null);
   const [status, setStatus] = useState({ health: 0, mental: 0, reputation: 0 });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    playerApi.get(worldId).then((p) => {
-      setPlayer(p);
-      setStatus({
-        health: p.status?.health ?? 0,
-        mental: p.status?.mental ?? 0,
-        reputation: p.status?.reputation ?? 0,
-      });
-    });
+    playerApi.get(worldId)
+      .then((p) => {
+        setPlayer(p);
+        setStatus({
+          health: p.status?.health ?? 0,
+          mental: p.status?.mental ?? 0,
+          reputation: p.status?.reputation ?? 0,
+        });
+      })
+      .catch(() => setError(true));
   }, [worldId]);
 
   async function handleSave() {
@@ -36,7 +39,7 @@ export default function PlayerProfilePanel({ worldId, onClose }) {
           <button onClick={onClose} aria-label="关闭">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {!player ? <Spinner /> : (
+          {!player ? (error ? <p className="text-red-500 text-sm">加载失败</p> : <Spinner />) : (
             <div className="space-y-4">
               <p className="font-semibold text-xl">{player.name}</p>
               {[

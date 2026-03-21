@@ -4,9 +4,12 @@ import Spinner from '../ui/Spinner.jsx';
 
 export default function InventoryPanel({ worldId, onClose }) {
   const [inventory, setInventory] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    playerApi.get(worldId).then((p) => setInventory(p.inventory || []));
+    playerApi.get(worldId)
+      .then((p) => setInventory(p.inventory || []))
+      .catch(() => setError(true));
   }, [worldId]);
 
   async function handleDelete(itemId) {
@@ -23,7 +26,7 @@ export default function InventoryPanel({ worldId, onClose }) {
           <button onClick={onClose} aria-label="关闭">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {!inventory ? <Spinner /> : inventory.length === 0 ? (
+          {!inventory ? (error ? <p className="text-red-500 text-sm">加载失败</p> : <Spinner />) : inventory.length === 0 ? (
             <p className="text-gray-400 text-sm">背包是空的</p>
           ) : (
             <ul className="space-y-3">

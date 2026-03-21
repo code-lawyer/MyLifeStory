@@ -5,10 +5,12 @@ import Spinner from '../ui/Spinner.jsx';
 export default function MapPanel({ worldId, onClose }) {
   const [scenes, setScenes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     scenesApi.list(worldId)
       .then((data) => setScenes(data.scenes || []))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [worldId]);
 
@@ -27,7 +29,9 @@ export default function MapPanel({ worldId, onClose }) {
           <button onClick={onClose} aria-label="关闭">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {loading ? <Spinner /> : (
+          {loading ? <Spinner /> : error ? (
+            <p className="text-red-500 text-sm">加载失败</p>
+          ) : (
             <ul className="space-y-2">
               {scenes.map((scene) => (
                 <li key={scene.id}>
