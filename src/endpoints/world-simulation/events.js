@@ -1,6 +1,7 @@
 import express from 'express';
 import { readEvents, writeEvents, appendEvent, deleteEvent } from './storage/events.js';
 import { readSummaries, writeSummaries } from './storage/summaries.js';
+import { readScenes, writeScenes } from './storage/scenes.js';
 import { callLLM } from './llm-client.js';
 import { randomUUID } from 'node:crypto';
 
@@ -25,6 +26,19 @@ router.post('/:worldId', async (req, res) => {
             return res.status(400).json({ error: 'missing_fields', required: ['id', 'title'] });
         }
         await appendEvent(req.user.directories, req.params.worldId, event);
+
+        // Unlock scenes that reference this event's id
+        try {
+            const sceneData = await readScenes(req.user.directories, req.params.worldId);
+            const affected = sceneData.scenes.filter(s => s.unlocked_by_event === event.id);
+            if (affected.length > 0) {
+                sceneData.scenes = sceneData.scenes.map(s =>
+                    s.unlocked_by_event === event.id ? { ...s, is_locked: false } : s
+                );
+                await writeScenes(req.user.directories, req.params.worldId, sceneData);
+            }
+        } catch { /* non-fatal — scenes file may not exist yet */ }
+
         res.status(201).json(event);
     } catch (err) {
         console.error(err);
