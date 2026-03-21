@@ -72,3 +72,27 @@ test('DELETE /characters/:id returns 204', async () => {
     const get = await fetch(`${url}/characters/c1`);
     expect(get.status).toBe(404);
 });
+
+test('POST /characters returns 400 when id or name missing', async () => {
+    const r = await fetch(`${url}/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'No ID' }),
+    });
+    expect(r.status).toBe(400);
+});
+
+test('PUT /characters/:charId updates a character', async () => {
+    await fetch(`${url}/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'c1', name: 'Ada', world_id: 'w1' }),
+    });
+    const put = await fetch(`${url}/characters/c1`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'c1', name: 'Ada Updated', world_id: 'w1' }),
+    });
+    expect(put.status).toBe(200);
+    expect((await put.json()).name).toBe('Ada Updated');
+});

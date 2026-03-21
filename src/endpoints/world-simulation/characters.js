@@ -3,6 +3,7 @@ import { readCharacter, writeCharacter, listCharacters, deleteCharacter } from '
 
 export const router = express.Router();
 
+// GET / — list all characters
 router.get('/', async (req, res) => {
     try {
         const chars = await listCharacters(req.user.directories, req.query.worldId || null);
@@ -10,6 +11,7 @@ router.get('/', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
+// GET /:charId
 router.get('/:charId', async (req, res) => {
     try {
         const char = await readCharacter(req.user.directories, req.params.charId);
@@ -18,6 +20,7 @@ router.get('/:charId', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
+// POST / — create
 router.post('/', async (req, res) => {
     try {
         const char = req.body;
@@ -27,6 +30,7 @@ router.post('/', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
+// PUT /:charId — replace
 router.put('/:charId', async (req, res) => {
     try {
         if (!req.body?.name) return res.status(400).json({ error: 'missing_fields' });
@@ -35,6 +39,7 @@ router.put('/:charId', async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
+// DELETE /:charId
 router.delete('/:charId', async (req, res) => {
     try {
         const char = await readCharacter(req.user.directories, req.params.charId);
