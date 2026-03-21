@@ -168,7 +168,7 @@ export default function WorldPage() {
       {!loading && !player && (
         <InitPlayerModal worldId={worldId} onCreated={(p) => setPlayer(p)} />
       )}
-      {!loading && scenes !== null && scenes.length === 0 && (
+      {!loading && player && scenes !== null && scenes.length === 0 && (
         <InitScenesModal
           worldId={worldId}
           onCreated={(scene) => setScenes([scene])}
