@@ -4,6 +4,7 @@ const BASE = (worldId) => `/api/world-sim/player/${worldId}`;
 
 export const playerApi = {
     get: (worldId) => apiFetch(BASE(worldId)),
+    create: (worldId, player) => apiFetch(BASE(worldId), { method: 'POST', body: JSON.stringify(player) }),
     update: (worldId, player) => apiFetch(BASE(worldId), { method: 'PUT', body: JSON.stringify(player) }),
     updateStatus: (worldId, status) =>
         apiFetch(`${BASE(worldId)}/status`, { method: 'PATCH', body: JSON.stringify(status) }),

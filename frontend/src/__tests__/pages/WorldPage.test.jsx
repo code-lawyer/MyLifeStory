@@ -129,6 +129,18 @@ it('restores chat history from localStorage on mount', async () => {
   expect(screen.getByText('Greetings!')).toBeInTheDocument();
 });
 
+it('shows player init modal when player is null', async () => {
+  vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
+  vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(null);
+  vi.spyOn(eventsApiModule.eventsApi, 'list').mockResolvedValue({ events: [] });
+  render(
+    <MemoryRouter initialEntries={['/world/w1']}>
+      <Routes><Route path="/world/:worldId" element={<WorldPage />} /></Routes>
+    </MemoryRouter>
+  );
+  await waitFor(() => expect(screen.getByText(/创建你的角色/)).toBeInTheDocument());
+});
+
 it('saves chat messages to localStorage after each message', async () => {
   vi.spyOn(chatApiModule, 'buildContext').mockResolvedValue({
     systemPrompt: 'sys', trimmedChatHistory: [], mode: 'ensemble',

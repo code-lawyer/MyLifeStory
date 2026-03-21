@@ -12,6 +12,7 @@ import MapPanel from '../components/panels/MapPanel.jsx';
 import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
 
 const NARRATIVE_MODES = [
   { value: 'intimate', label: '亲密 (50% 对话)' },
@@ -159,6 +160,9 @@ export default function WorldPage() {
       {showMap && <MapPanel worldId={worldId} onClose={() => setShowMap(false)} />}
       {showProfile && <PlayerProfilePanel worldId={worldId} onClose={() => setShowProfile(false)} />}
       {showInventory && <InventoryPanel worldId={worldId} onClose={() => setShowInventory(false)} />}
+      {!loading && !player && (
+        <InitPlayerModal worldId={worldId} onCreated={(p) => setPlayer(p)} />
+      )}
     </div>
   );
 }
