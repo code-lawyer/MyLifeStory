@@ -19,6 +19,7 @@ export default function WorldArchivePage() {
   const [characters, setCharacters] = useState([]);
   const [scenes, setScenes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -31,15 +32,21 @@ export default function WorldArchivePage() {
       setEvents(e.events || []);
       setCharacters(c);
       setScenes(s.scenes || []);
-    }).finally(() => setLoading(false));
+    }).catch(() => setError(true))
+      .finally(() => setLoading(false));
   }, [worldId]);
 
   async function handleDeleteEvent(eventId) {
-    await eventsApi.delete(worldId, eventId);
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    try {
+      await eventsApi.delete(worldId, eventId);
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch {
+      // Delete failed — leave events list unchanged
+    }
   }
 
   if (loading) return <div className="flex items-center justify-center h-screen"><Spinner /></div>;
+  if (error) return <div className="flex items-center justify-center h-screen"><p className="text-red-500">加载失败</p></div>;
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4 space-y-8">
