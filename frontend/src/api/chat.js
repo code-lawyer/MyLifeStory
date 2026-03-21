@@ -8,6 +8,7 @@ export async function buildContext(payload) {
 }
 
 export async function streamChat({ worldId, systemPrompt, messages, apiConfig, onDelta, onDone }) {
+    // Uses raw fetch (not apiFetch) because SSE streams cannot be consumed as JSON
     const res = await fetch(`/api/world-sim/chat/${worldId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -22,19 +23,35 @@ export async function streamChat({ worldId, systemPrompt, messages, apiConfig, o
     const decoder = new TextDecoder();
     let buffer = '';
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-        for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const data = JSON.parse(line.slice(6));
-            if (data.done) { onDone?.(); return; }
-            if (data.error) throw new Error(data.error);
-            if (data.delta) onDelta?.(data.delta);
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const data = JSON.parse(line.slice(6));
+                if (data.done) { onDone?.(); return; }
+                if (data.error) throw new Error(data.error);
+                if (data.delta) onDelta?.(data.delta);
+            }
         }
+        // Flush any remaining buffered content
+        if (buffer.trim()) {
+            const line = buffer.trim();
+            if (line.startsWith('data: ')) {
+                try {
+                    const data = JSON.parse(line.slice(6));
+                    if (data.done) { /* handled by onDone below */ }
+                    else if (data.error) throw new Error(data.error);
+                    else if (data.delta) onDelta?.(data.delta);
+                } catch { /* skip malformed final line */ }
+            }
+        }
+        onDone?.();
+    } finally {
+        reader.cancel();
     }
-    onDone?.();
 }

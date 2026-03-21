@@ -31,6 +31,7 @@ describe('streamChat', () => {
         offset += 20;
         return { done: false, value: chunk };
       }),
+      cancel: vi.fn(),
     };
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
