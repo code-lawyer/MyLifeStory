@@ -55,7 +55,9 @@ const COMPRESS_SYSTEM = `You are a world historian. Summarize the provided list 
 router.post('/:worldId/propose', async (req, res) => {
     try {
         const { chatHistory, apiConfig = {} } = req.body;
-        if (!chatHistory) return res.status(400).json({ error: 'missing_fields' });
+        if (!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) {
+            return res.status(400).json({ error: 'missing_fields' });
+        }
 
         const messages = [{ role: 'user', content: JSON.stringify(chatHistory) }];
         let raw;
@@ -70,6 +72,11 @@ router.post('/:worldId/propose', async (req, res) => {
         catch { return res.status(422).json({ error: 'parse_failed', raw }); }
 
         if (!parsed.significant) return res.json({ proposal: null });
+
+        // Validate required fields from LLM response
+        if (!parsed.title || !parsed.description || !parsed.narrative) {
+            return res.status(422).json({ error: 'parse_failed', raw });
+        }
 
         const event_draft = {
             id: randomUUID(),
@@ -118,8 +125,8 @@ router.post('/:worldId/compress', async (req, res) => {
             summary: summaryText,
             compressed_at: new Date().toISOString(),
         });
-        await writeSummaries(dirs, req.params.worldId, summaries);
         await writeEvents(dirs, req.params.worldId, { events: toKeep });
+        await writeSummaries(dirs, req.params.worldId, summaries);
 
         res.json({ compressed: toCompress.length, kept: toKeep.length });
     } catch (err) {
