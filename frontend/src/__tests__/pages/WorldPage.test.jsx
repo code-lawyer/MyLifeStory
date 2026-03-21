@@ -24,7 +24,7 @@ beforeEach(() => {
   vi.restoreAllMocks();
   // Reset Zustand event store so turn-counter tests are not order-dependent
   useEventStore.setState({ turnsSinceLastPropose: 0, pendingProposal: null, proposing: false });
-  useChatStore.setState({ messages: [], streaming: false });
+  useChatStore.setState({ messages: [], streaming: false, currentWorldId: null });
 });
 
 function renderPage() {
@@ -108,5 +108,10 @@ it('shows event proposal card after 3 turns complete', async () => {
   await waitFor(
     () => expect(screen.getByText(/冥冥中，风暴来临。/)).toBeInTheDocument(),
     { timeout: 3000 }
+  );
+  expect(eventsApiModule.eventsApi.propose).toHaveBeenCalledWith(
+    'w1',
+    expect.arrayContaining([expect.objectContaining({ role: 'user' })]),
+    {}
   );
 });
