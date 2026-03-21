@@ -98,6 +98,10 @@ const STORAGE_KEYS = {
  * @property {string} files - The directory where the uploaded files are stored
  * @property {string} vectors - The directory where the vectors are stored
  * @property {string} backups - The directory where the backups are stored
+ * @property {string} worldEvents - The directory where world event logs are stored
+ * @property {string} worldSummaries - The directory where compressed world history summaries are stored
+ * @property {string} scenes - The directory where scene data is stored
+ * @property {string} players - The directory where player profile data is stored
  * @property {string} sysprompt - The directory where the system prompt data is stored
  * @property {string} reasoning - The directory where the reasoning templates are stored
  */
