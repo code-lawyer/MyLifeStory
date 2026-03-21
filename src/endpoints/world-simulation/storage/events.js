@@ -11,12 +11,13 @@ export async function readEvents(directories, worldId) {
     try {
         const text = await fs.promises.readFile(getPath(directories, worldId), 'utf8');
         return JSON.parse(text);
-    } catch {
+    } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
         return { events: [] };
     }
 }
 
-export async function writeEvents(directories, worldId, data) {
+export function writeEvents(directories, worldId, data) {
     writeFileAtomicSync(getPath(directories, worldId), JSON.stringify(data, null, 2));
 }
 
