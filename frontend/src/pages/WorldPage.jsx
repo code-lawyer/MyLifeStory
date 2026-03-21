@@ -40,6 +40,11 @@ export default function WorldPage() {
 
   useEffect(() => {
     useChatStore.getState().clearMessages();
+    // Restore persisted history for this world
+    try {
+      const stored = JSON.parse(localStorage.getItem(`world-sim-chat-${worldId}`) || '[]');
+      if (stored.length > 0) useChatStore.getState().setMessages(stored);
+    } catch { /* ignore */ }
     Promise.all([
       worldsApi.get(worldId),
       playerApi.get(worldId).catch(() => null),
@@ -49,6 +54,13 @@ export default function WorldPage() {
       setPlayer(p);
     }).finally(() => setLoading(false));
   }, [worldId]);
+
+  useEffect(() => {
+    if (chatMessages.length === 0) return;
+    try {
+      localStorage.setItem(`world-sim-chat-${worldId}`, JSON.stringify(chatMessages));
+    } catch { /* ignore quota */ }
+  }, [worldId, chatMessages]);
 
   const handleTurnComplete = useCallback(async () => {
     incrementTurns();

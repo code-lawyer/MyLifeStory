@@ -22,6 +22,7 @@ const mockPlayer = {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  localStorage.clear();
   // Reset Zustand event store so turn-counter tests are not order-dependent
   useEventStore.setState({ turnsSinceLastPropose: 0, pendingProposal: null, proposing: false });
   useChatStore.setState({ messages: [], streaming: false, currentWorldId: null });
@@ -114,4 +115,33 @@ it('shows event proposal card after 3 turns complete', async () => {
     expect.arrayContaining([expect.objectContaining({ role: 'user' })]),
     {}
   );
+});
+
+it('restores chat history from localStorage on mount', async () => {
+  const stored = [
+    { role: 'user', content: 'Hello world' },
+    { role: 'assistant', content: 'Greetings!' },
+  ];
+  localStorage.setItem('world-sim-chat-w1', JSON.stringify(stored));
+  renderPage();
+  await waitFor(() => screen.getByText('Iron Fog'));
+  await waitFor(() => expect(screen.getByText('Hello world')).toBeInTheDocument());
+  expect(screen.getByText('Greetings!')).toBeInTheDocument();
+});
+
+it('saves chat messages to localStorage after each message', async () => {
+  vi.spyOn(chatApiModule, 'buildContext').mockResolvedValue({
+    systemPrompt: 'sys', trimmedChatHistory: [], mode: 'ensemble',
+  });
+  vi.spyOn(chatApiModule, 'streamChat').mockImplementation(async ({ onDelta, onDone }) => {
+    onDelta('reply'); onDone();
+  });
+  renderPage();
+  await waitFor(() => screen.getByText('Iron Fog'));
+  const input = screen.getByRole('textbox');
+  await userEvent.type(input, 'test message');
+  await userEvent.click(screen.getByRole('button', { name: /发送/ }));
+  await waitFor(() => expect(screen.getByText('test message')).toBeInTheDocument());
+  const stored = JSON.parse(localStorage.getItem('world-sim-chat-w1') || '[]');
+  expect(stored.some(m => m.content === 'test message')).toBe(true);
 });
