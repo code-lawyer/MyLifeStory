@@ -37,7 +37,7 @@ router.post('/:worldId', async (req, res) => {
                 );
                 await writeScenes(req.user.directories, req.params.worldId, sceneData);
             }
-        } catch { /* non-fatal — scenes file may not exist yet */ }
+        } catch (err) { console.error('[events] scene unlock failed (non-fatal):', err); }
 
         res.status(201).json(event);
     } catch (err) {

@@ -59,3 +59,13 @@ it('does not modify scenes when no scene matches', async () => {
     const cave = sceneData.scenes.find(s => s.id === 'scene-a');
     expect(cave.is_locked).toBe(true); // unchanged
 });
+
+it('returns 201 when no scenes file exists for the world', async () => {
+    // eventsDir is empty — no scenes file for world2
+    const res = await fetch(`${url}/world2`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'evt-1', title: 'An event', description: 'Nothing to unlock' }),
+    });
+    expect(res.status).toBe(201);
+});
