@@ -7,7 +7,7 @@ export const router = express.Router();
 // POST /:worldId — stream chat response as SSE
 router.post('/:worldId', async (req, res) => {
     const { systemPrompt, messages, apiConfig = {} } = req.body;
-    if (!systemPrompt || !Array.isArray(messages) || messages.length === 0) {
+    if (!systemPrompt || !Array.isArray(messages)) {
         return res.status(400).json({ error: 'missing_fields' });
     }
 
