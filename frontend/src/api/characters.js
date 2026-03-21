@@ -3,7 +3,7 @@ import { apiFetch } from './client.js';
 const BASE = '/api/world-sim';
 
 export const charactersApi = {
-  list: (worldId) => apiFetch(worldId ? `${BASE}/characters?worldId=${worldId}` : `${BASE}/characters`),
+  list: () => apiFetch(`${BASE}/characters`),
   get: (id) => apiFetch(`${BASE}/characters/${id}`),
   create: (char) => apiFetch(`${BASE}/characters`, { method: 'POST', body: JSON.stringify(char) }),
   update: (id, char) => apiFetch(`${BASE}/characters/${id}`, { method: 'PUT', body: JSON.stringify(char) }),

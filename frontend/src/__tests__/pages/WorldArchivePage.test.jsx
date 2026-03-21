@@ -22,7 +22,7 @@ function renderPage() {
   vi.spyOn(eventsApiModule.eventsApi, 'list').mockResolvedValue({
     events: [{ id: 'e1', title: 'The Siege', description: 'City under attack', impact_scope: 'major' }],
   });
-  vi.spyOn(charactersApiModule.charactersApi, 'list').mockResolvedValue([
+  vi.spyOn(charactersApiModule.charactersApi, 'listByWorld').mockResolvedValue([
     { id: 'c1', name: 'Ada', world_id: 'w1' },
   ]);
   vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({

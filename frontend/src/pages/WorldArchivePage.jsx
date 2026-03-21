@@ -25,7 +25,7 @@ export default function WorldArchivePage() {
     Promise.all([
       worldsApi.get(worldId),
       eventsApi.list(worldId),
-      charactersApi.list(worldId),
+      charactersApi.listByWorld(worldId),
       scenesApi.list(worldId),
     ]).then(([w, e, c, s]) => {
       setWorld(w);
