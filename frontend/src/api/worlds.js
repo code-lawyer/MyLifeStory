@@ -9,8 +9,8 @@ export const worldsApi = {
   update: (id, world) => apiFetch(`${BASE}/worlds/${id}`, { method: 'PUT', body: JSON.stringify(world) }),
   delete: (id) => apiFetch(`${BASE}/worlds/${id}`, { method: 'DELETE' }),
 
-  generateDraft: (description, apiConfig) =>
-    apiFetch(`${BASE}/generate/world`, { method: 'POST', body: JSON.stringify({ description, apiConfig }) }),
+  generateDraft: (description, apiConfig, scale) =>
+    apiFetch(`${BASE}/generate/world`, { method: 'POST', body: JSON.stringify({ description, apiConfig, scale }) }),
 
   refineDraft: (draft, section, instruction, apiConfig) =>
     apiFetch(`${BASE}/generate/world/refine`, {

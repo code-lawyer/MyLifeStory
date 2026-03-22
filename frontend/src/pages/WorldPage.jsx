@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
 import { eventsApi } from '../api/events.js';
@@ -27,6 +27,7 @@ const NARRATIVE_MODES = [
 
 export default function WorldPage() {
   const { worldId } = useParams();
+  const navigate = useNavigate();
   const [world, setWorld] = useState(null);
   const [player, setPlayer] = useState(null);
   const [scenes, setScenes] = useState(null);
@@ -74,6 +75,12 @@ export default function WorldPage() {
       setActiveCharacters(charList.map(c => c.id));
     }).finally(() => setLoading(false));
   }, [worldId]);
+
+  useEffect(() => {
+    if (world && world.onboarding_complete === false) {
+      navigate(`/world/${worldId}/setup`, { replace: true });
+    }
+  }, [world]);
 
   useEffect(() => {
     if (chatMessages.length === 0 || chatStreaming) return;
