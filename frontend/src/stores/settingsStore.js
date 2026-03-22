@@ -19,26 +19,11 @@ export const useSettingsStore = create((set, get) => {
     model: saved.model || '',
     tokenBudget: saved.tokenBudget || 4096,
 
-    loadFromStorage: () => {
-      const data = loadFromLocalStorage();
-      set({
-        apiUrl: data.apiUrl || '',
-        apiKey: data.apiKey || '',
-        model: data.model || '',
-        tokenBudget: data.tokenBudget || 4096,
-      });
-    },
-
     save: (updates) => {
-      const next = { ...get(), ...updates };
       set(updates);
+      const { apiUrl, apiKey, model, tokenBudget } = { ...get(), ...updates };
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          apiUrl: next.apiUrl,
-          apiKey: next.apiKey,
-          model: next.model,
-          tokenBudget: next.tokenBudget,
-        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ apiUrl, apiKey, model, tokenBudget }));
       } catch { /* ignore quota errors */ }
     },
 

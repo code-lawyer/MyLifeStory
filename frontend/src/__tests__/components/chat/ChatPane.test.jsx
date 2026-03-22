@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { useChatStore } from '../../../stores/chatStore.js';
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  useChatStore.setState({ messages: [], streaming: false, currentWorldId: null });
+  useChatStore.setState({ messages: [], streaming: false });
 });
 
 function renderPane(props = {}) {

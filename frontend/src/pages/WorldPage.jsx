@@ -58,10 +58,9 @@ export default function WorldPage() {
     Promise.all([
       worldsApi.get(worldId),
       playerApi.get(worldId).catch(() => null),
-      eventsApi.list(worldId).catch(() => ({ events: [] })),
       scenesApi.list(worldId).catch(() => ({ scenes: [] })),
       charactersApi.listByWorld(worldId).catch(() => []),
-    ]).then(([w, p, , s, chars]) => {
+    ]).then(([w, p, s, chars]) => {
       setWorld(w);
       setPlayer(p);
       setScenes(s.scenes || []);
@@ -92,7 +91,7 @@ export default function WorldPage() {
     } finally {
       setProposing(false);
     }
-  }, [worldId, incrementTurns, shouldPropose, setProposing, setPendingProposal]);
+  }, [worldId, incrementTurns, shouldPropose, setProposing, setPendingProposal, getApiConfig]);
 
   if (loading) {
     return (

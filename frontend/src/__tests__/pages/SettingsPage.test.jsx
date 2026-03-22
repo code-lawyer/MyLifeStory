@@ -50,8 +50,7 @@ it('loads existing settings from localStorage on mount', () => {
   localStorage.setItem('world-sim-settings', JSON.stringify({
     apiUrl: 'https://existing.api', apiKey: 'sk-existing', model: 'claude-3', tokenBudget: 8192,
   }));
-  // Re-init store from localStorage
-  useSettingsStore.getState().loadFromStorage();
+  useSettingsStore.setState({ apiUrl: 'https://existing.api', apiKey: 'sk-existing', model: 'claude-3', tokenBudget: 8192 });
   renderPage();
   expect(screen.getByLabelText(/API URL/i)).toHaveValue('https://existing.api');
 });

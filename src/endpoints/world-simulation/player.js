@@ -34,6 +34,7 @@ router.patch('/:worldId/status', async (req, res) => {
         const player = await readPlayer(req.user.directories, req.params.worldId);
         if (!player) return res.status(404).json({ error: 'player_not_found' });
         const { health, mental, reputation } = req.body;
+        player.status = player.status || {};
         if (health !== undefined) player.status.health = health;
         if (mental !== undefined) player.status.mental = mental;
         if (reputation !== undefined) player.status.reputation = reputation;

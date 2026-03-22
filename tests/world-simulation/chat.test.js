@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { router as chatRouter } from '../../src/endpoints/world-simulation/chat.js';
 import { setLLMAdapter } from '../../src/endpoints/world-simulation/llm-client.js';
 import { startTestServer } from './helpers.js';

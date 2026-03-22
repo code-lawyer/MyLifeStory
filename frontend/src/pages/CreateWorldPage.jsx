@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { randomUUID } from '../lib/uuid.js';
+
 import { worldsApi } from '../api/worlds.js';
+import { useSettingsStore } from '../stores/settingsStore.js';
 import DraftBlock from '../components/wizard/DraftBlock.jsx';
 import RefineDialog from '../components/wizard/RefineDialog.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -14,6 +15,7 @@ const SECTION_LABELS = {
 
 export default function CreateWorldPage() {
   const navigate = useNavigate();
+  const { getApiConfig } = useSettingsStore();
   const [description, setDescription] = useState('');
   const [draft, setDraft] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -30,7 +32,7 @@ export default function CreateWorldPage() {
     setGenerating(true);
     setError(null);
     try {
-      const { draft: d } = await worldsApi.generateDraft(description);
+      const { draft: d } = await worldsApi.generateDraft(description, getApiConfig());
       setDraft(d);
     } catch (err) {
       setError(err?.status === 502 ? 'AI 服务暂时不可用，请稍后重试' : '生成失败，请重试');
@@ -45,7 +47,7 @@ export default function CreateWorldPage() {
     setRefiningSection(null);
     setDraft((prev) => ({ ...prev, _refining: section }));
     try {
-      const { draft: refined } = await worldsApi.refineDraft(currentDraft, section, additionalDescription);
+      const { draft: refined } = await worldsApi.refineDraft(currentDraft, section, additionalDescription, getApiConfig());
       setDraft(refined);
     } catch {
       setError('细化失败，请重试');
@@ -58,7 +60,7 @@ export default function CreateWorldPage() {
     setSaving(true);
     try {
       const { _refining, ...cleanDraft } = draft;
-      const worldToSave = { ...cleanDraft, id: cleanDraft.id || randomUUID(), created_at: new Date().toISOString() };
+      const worldToSave = { ...cleanDraft, id: cleanDraft.id || crypto.randomUUID(), created_at: new Date().toISOString() };
       await worldsApi.create(worldToSave);
       setSaving(false);
       navigate(`/world/${worldToSave.id}`);

@@ -90,7 +90,7 @@ export default function ChatPane({
             }`}
           >
             {msg.content}
-            {msg.role === 'assistant' && streaming && !msg.content && <Spinner />}
+            {msg.role === 'assistant' && streaming && i === messages.length - 1 && !msg.content && <Spinner />}
           </li>
         ))}
         <div ref={bottomRef} />

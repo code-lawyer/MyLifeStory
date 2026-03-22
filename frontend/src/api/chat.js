@@ -22,6 +22,11 @@ export async function streamChat({ worldId, systemPrompt, messages, apiConfig, o
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let doneFired = false;
+
+    function fireDone() {
+        if (!doneFired) { doneFired = true; onDone?.(); }
+    }
 
     try {
         while (true) {
@@ -33,7 +38,7 @@ export async function streamChat({ worldId, systemPrompt, messages, apiConfig, o
             for (const line of lines) {
                 if (!line.startsWith('data: ')) continue;
                 const data = JSON.parse(line.slice(6));
-                if (data.done) { onDone?.(); return; }
+                if (data.done) { fireDone(); return; }
                 if (data.error) throw new Error(data.error);
                 if (data.delta) onDelta?.(data.delta);
             }
@@ -44,13 +49,13 @@ export async function streamChat({ worldId, systemPrompt, messages, apiConfig, o
             if (line.startsWith('data: ')) {
                 try {
                     const data = JSON.parse(line.slice(6));
-                    if (data.done) { /* handled by onDone below */ }
-                    else if (data.error) throw new Error(data.error);
-                    else if (data.delta) onDelta?.(data.delta);
+                    if (data.done) { fireDone(); return; }
+                    if (data.error) throw new Error(data.error);
+                    if (data.delta) onDelta?.(data.delta);
                 } catch { /* skip malformed final line */ }
             }
         }
-        onDone?.();
+        fireDone();
     } finally {
         reader.cancel();
     }

@@ -39,7 +39,7 @@ describe('POST /state/:worldId/update', () => {
     test('calls LLM and updates current_state in world file', async () => {
         // Create a world file first
         const worldData = { id: 'w1', name: 'Test World', current_state: { summary: 'Old summary', updated_at: '' } };
-        fs.writeFileSync(path.join(dirs.worlds, 'w1.json'), JSON.stringify(worldData));
+        fs.writeFileSync(path.join(dirs.worlds, 'ws_w1.json'), JSON.stringify(worldData));
 
         setLLMAdapter(async () => 'New summary: the world has changed.');
 
@@ -56,7 +56,7 @@ describe('POST /state/:worldId/update', () => {
     test('returns 502 when LLM is unavailable', async () => {
         // Ensure world file exists (reuse w1.json from previous test)
         const worldData = { id: 'w1', name: 'Test World', current_state: { summary: 'Old', updated_at: '' } };
-        fs.writeFileSync(path.join(dirs.worlds, 'w1.json'), JSON.stringify(worldData));
+        fs.writeFileSync(path.join(dirs.worlds, 'ws_w1.json'), JSON.stringify(worldData));
 
         setLLMAdapter(async () => { throw new Error('LLM down'); });
 

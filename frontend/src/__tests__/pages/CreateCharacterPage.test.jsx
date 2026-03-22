@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -82,7 +82,7 @@ it('calls refineDraft and closes dialog after confirming', async () => {
 
   await waitFor(() =>
     expect(charsApiModule.charactersApi.refineDraft).toHaveBeenCalledWith(
-      mockCharDraft, 'identity', '更坚韧一些'
+      mockCharDraft, 'identity', '更坚韧一些', expect.any(Object)
     )
   );
 });

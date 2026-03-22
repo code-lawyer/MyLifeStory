@@ -1,6 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
-import fetch from 'node-fetch';
 import express from 'express';
 import { router as charactersRouter } from '../../src/endpoints/world-simulation/characters.js';
 import { startTestServer } from './helpers.js';

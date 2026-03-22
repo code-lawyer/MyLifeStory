@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { it, expect, vi, beforeEach } from 'vitest';
 import { scenesApi } from '../../api/scenes.js';
 
 beforeEach(() => { vi.restoreAllMocks(); });

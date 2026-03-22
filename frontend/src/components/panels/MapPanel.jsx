@@ -14,10 +14,17 @@ export default function MapPanel({ worldId, onClose }) {
       .finally(() => setLoading(false));
   }, [worldId]);
 
+  const [enterError, setEnterError] = useState(null);
+
   async function handleEnter(scene) {
     if (scene.is_locked) return;
-    await scenesApi.enterScene(worldId, scene.id);
-    onClose();
+    setEnterError(null);
+    try {
+      await scenesApi.enterScene(worldId, scene.id);
+      onClose();
+    } catch {
+      setEnterError(scene.id);
+    }
   }
 
   return (
@@ -47,6 +54,7 @@ export default function MapPanel({ worldId, onClose }) {
                   >
                     {scene.name}
                     {scene.is_locked && <span className="ml-2 text-xs">🔒</span>}
+                    {enterError === scene.id && <span className="block text-xs text-red-500 mt-1">进入失败</span>}
                   </button>
                 </li>
               ))}

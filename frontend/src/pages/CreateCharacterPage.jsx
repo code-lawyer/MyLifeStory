@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { randomUUID } from '../lib/uuid.js';
+
 import { charactersApi } from '../api/characters.js';
+import { useSettingsStore } from '../stores/settingsStore.js';
 import DraftBlock from '../components/wizard/DraftBlock.jsx';
 import RefineDialog from '../components/wizard/RefineDialog.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -16,6 +17,7 @@ export default function CreateCharacterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const worldId = searchParams.get('worldId');
+  const { getApiConfig } = useSettingsStore();
 
   const [description, setDescription] = useState('');
   const [draft, setDraft] = useState(null);
@@ -32,7 +34,7 @@ export default function CreateCharacterPage() {
     setGenerating(true);
     setError(null);
     try {
-      const { draft: d } = await charactersApi.generateDraft(worldId, description);
+      const { draft: d } = await charactersApi.generateDraft(worldId, description, getApiConfig());
       setDraft(d);
     } catch (err) {
       setError(err?.status === 502 ? 'AI 服务暂时不可用，请稍后重试' : '生成失败，请重试');
@@ -47,7 +49,7 @@ export default function CreateCharacterPage() {
     setRefiningSection(null);
     setDraft((prev) => ({ ...prev, _refining: section }));
     try {
-      const { draft: refined } = await charactersApi.refineDraft(currentDraft, section, additionalDescription);
+      const { draft: refined } = await charactersApi.refineDraft(currentDraft, section, additionalDescription, getApiConfig());
       setDraft(refined);
     } catch {
       setError('细化失败，请重试');
@@ -60,7 +62,7 @@ export default function CreateCharacterPage() {
     setSaving(true);
     try {
       const { _refining, ...cleanDraft } = draft;
-      const charToSave = { ...cleanDraft, id: cleanDraft.id || randomUUID(), world_id: worldId, created_at: new Date().toISOString() };
+      const charToSave = { ...cleanDraft, id: cleanDraft.id || crypto.randomUUID(), world_id: worldId, created_at: new Date().toISOString() };
       await charactersApi.create(charToSave);
       setSaving(false);
       navigate(worldId ? `/world/${worldId}` : '/');
