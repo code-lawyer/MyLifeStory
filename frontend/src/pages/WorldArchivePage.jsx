@@ -84,69 +84,45 @@ export default function WorldArchivePage() {
         </div>
 
         {/* Events Tab */}
-        {activeTab === 'events' && (
-          <div>
-            {events.length === 0 ? (
-              <p className="text-xs text-ink/30">暂无事件</p>
-            ) : (
-              <div>
-                {events.map((event) => (
-                  <div key={event.id} className="py-3 border-b border-ink/8 flex items-start gap-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-ink">
-                        {event.title}
-                        <span className="text-[10px] text-ink/30 ml-2 font-normal">{IMPACT_LABELS[event.impact_scope] || event.impact_scope}</span>
-                      </p>
-                      <p className="text-xs text-ink/50 mt-0.5">{event.description}</p>
-                    </div>
-                    <button
-                      className="text-[10px] text-ink/30 hover:text-ink/60 transition-colors shrink-0 mt-1"
-                      onClick={() => handleDeleteEvent(event.id)}
-                      aria-label="删除事件"
-                    >
-                      删除
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+        {activeTab === 'events' && (events.length === 0 ? (
+          <p className="text-xs text-ink/30">暂无事件</p>
+        ) : events.map((event) => (
+          <div key={event.id} className="py-3 border-b border-ink/8 flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-ink">
+                {event.title}
+                <span className="text-[10px] text-ink/30 ml-2 font-normal">{IMPACT_LABELS[event.impact_scope] || event.impact_scope}</span>
+              </p>
+              <p className="text-xs text-ink/50 mt-0.5">{event.description}</p>
+            </div>
+            <button
+              className="text-[10px] text-ink/30 hover:text-ink/60 transition-colors shrink-0 mt-1"
+              onClick={() => handleDeleteEvent(event.id)}
+              aria-label="删除事件"
+            >
+              删除
+            </button>
           </div>
-        )}
+        )))}
 
         {/* Characters Tab */}
-        {activeTab === 'characters' && (
-          <div>
-            {characters.length === 0 ? (
-              <p className="text-xs text-ink/30">暂无角色</p>
-            ) : (
-              <div>
-                {characters.map((c) => (
-                  <div key={c.id} className="py-2 border-b border-ink/8">
-                    <p className="text-sm text-ink">{c.name}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+        {activeTab === 'characters' && (characters.length === 0 ? (
+          <p className="text-xs text-ink/30">暂无角色</p>
+        ) : characters.map((c) => (
+          <div key={c.id} className="py-2 border-b border-ink/8">
+            <p className="text-sm text-ink">{c.name}</p>
           </div>
-        )}
+        )))}
 
         {/* Scenes Tab */}
-        {activeTab === 'scenes' && (
-          <div>
-            {scenes.length === 0 ? (
-              <p className="text-xs text-ink/30">暂无场景</p>
-            ) : (
-              <div>
-                {scenes.map((s) => (
-                  <div key={s.id} className="py-2 border-b border-ink/8 flex items-center">
-                    <p className="text-sm text-ink">{s.name}</p>
-                    {s.is_locked && <span className="ml-2 text-[10px] text-ink/30">未解锁</span>}
-                  </div>
-                ))}
-              </div>
-            )}
+        {activeTab === 'scenes' && (scenes.length === 0 ? (
+          <p className="text-xs text-ink/30">暂无场景</p>
+        ) : scenes.map((s) => (
+          <div key={s.id} className="py-2 border-b border-ink/8 flex items-center">
+            <p className="text-sm text-ink">{s.name}</p>
+            {s.is_locked && <span className="ml-2 text-[10px] text-ink/30">未解锁</span>}
           </div>
-        )}
+        )))}
       </main>
     </div>
   );

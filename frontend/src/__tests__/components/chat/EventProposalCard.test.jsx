@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EventProposalCard from '../../../components/chat/EventProposalCard.jsx';
 import * as eventsApiModule from '../../../api/events.js';
+import * as stateApiModule from '../../../api/state.js';
 
 const mockProposal = {
   narrative: '冥冥中，一场风暴正在酝酿。',
@@ -41,4 +42,24 @@ it('disables buttons while accepting', async () => {
   await userEvent.click(screen.getByRole('button', { name: /接受/ }));
   expect(screen.getByRole('button', { name: /接受/ })).toBeDisabled();
   resolve({});
+});
+
+it('calls stateApi.update after confirming event', async () => {
+  vi.spyOn(eventsApiModule.eventsApi, 'confirm').mockResolvedValue({});
+  vi.spyOn(eventsApiModule.eventsApi, 'compress').mockResolvedValue({});
+  const updateSpy = vi.spyOn(stateApiModule.stateApi, 'update').mockResolvedValue({ current_state: { summary: 'new' } });
+  const apiConfig = { apiUrl: 'http://x', apiKey: 'k', model: 'm' };
+  render(<EventProposalCard worldId="w1" proposal={mockProposal} onDismiss={vi.fn()} apiConfig={apiConfig} />);
+  await userEvent.click(screen.getByRole('button', { name: /接受/ }));
+  await waitFor(() => expect(updateSpy).toHaveBeenCalledWith('w1', apiConfig));
+});
+
+it('calls onAccepted with event data after confirm chain completes', async () => {
+  vi.spyOn(eventsApiModule.eventsApi, 'confirm').mockResolvedValue({});
+  vi.spyOn(eventsApiModule.eventsApi, 'compress').mockResolvedValue({});
+  vi.spyOn(stateApiModule.stateApi, 'update').mockResolvedValue({ current_state: { summary: 'new' } });
+  const onAccepted = vi.fn();
+  render(<EventProposalCard worldId="w1" proposal={mockProposal} onDismiss={vi.fn()} onAccepted={onAccepted} apiConfig={{}} />);
+  await userEvent.click(screen.getByRole('button', { name: /接受/ }));
+  await waitFor(() => expect(onAccepted).toHaveBeenCalledWith(mockProposal.event_draft));
 });

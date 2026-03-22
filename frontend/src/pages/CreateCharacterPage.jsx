@@ -1,8 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { charactersApi } from '../api/characters.js';
-import { useSettingsStore } from '../stores/settingsStore.js';
+import useDraftWizard from '../hooks/useDraftWizard.js';
 import DraftBlock from '../components/wizard/DraftBlock.jsx';
 import RefineDialog from '../components/wizard/RefineDialog.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -17,60 +16,23 @@ export default function CreateCharacterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const worldId = searchParams.get('worldId');
-  const { getApiConfig } = useSettingsStore();
 
-  const [description, setDescription] = useState('');
-  const [draft, setDraft] = useState(null);
-  const [generating, setGenerating] = useState(false);
-  const [refiningSection, setRefiningSection] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-
-  const draftRef = useRef(draft);
-  useEffect(() => { draftRef.current = draft; }, [draft]);
-
-  async function handleGenerate() {
-    if (!description.trim()) return;
-    setGenerating(true);
-    setError(null);
-    try {
-      const { draft: d } = await charactersApi.generateDraft(worldId, description, getApiConfig());
-      setDraft(d);
-    } catch (err) {
-      setError(err?.status === 502 ? 'AI 服务暂时不可用，请稍后重试' : '生成失败，请重试');
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  const handleRefineConfirm = useCallback(async (additionalDescription) => {
-    const section = refiningSection;
-    const currentDraft = draftRef.current;
-    setRefiningSection(null);
-    setDraft((prev) => ({ ...prev, _refining: section }));
-    try {
-      const { draft: refined } = await charactersApi.refineDraft(currentDraft, section, additionalDescription, getApiConfig());
-      setDraft(refined);
-    } catch {
-      setError('细化失败，请重试');
-      setDraft((prev) => { const d = { ...prev }; delete d._refining; return d; });
-    }
-  }, [refiningSection]); // draft removed from deps — draftRef handles freshness
-
-  async function handleCreate() {
-    if (!draft || saving) return;
-    setSaving(true);
-    try {
-      const { _refining, ...cleanDraft } = draft;
+  const {
+    description, setDescription,
+    draft, setDraft,
+    generating, saving,
+    refiningSection, setRefiningSection,
+    error,
+    handleGenerate, handleRefineConfirm, handleCreate,
+  } = useDraftWizard({
+    generateFn: (desc, apiConfig) => charactersApi.generateDraft(worldId, desc, apiConfig),
+    refineFn: (d, section, text, apiConfig) => charactersApi.refineDraft(d, section, text, apiConfig),
+    saveFn: async (cleanDraft) => {
       const charToSave = { ...cleanDraft, id: cleanDraft.id || crypto.randomUUID(), world_id: worldId, created_at: new Date().toISOString() };
       await charactersApi.create(charToSave);
-      setSaving(false);
-      navigate(worldId ? `/world/${worldId}` : '/');
-    } catch {
-      setError('保存失败，请重试');
-      setSaving(false);
-    }
-  }
+      return worldId ? `/world/${worldId}` : '/';
+    },
+  });
 
   return (
     <div className="min-h-screen bg-parchment">

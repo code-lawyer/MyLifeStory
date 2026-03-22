@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
@@ -33,15 +33,17 @@ export default function WorldPage() {
   const [characters, setCharacters] = useState([]);
   const [activeCharacters, setActiveCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentScene, setCurrentScene] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
 
-  const { tokenBudget, getApiConfig } = useSettingsStore();
+  const { tokenBudget, apiUrl, apiKey, model } = useSettingsStore();
+  const apiConfig = useMemo(() => ({ apiUrl, apiKey, model }), [apiUrl, apiKey, model]);
   const { narrativeMode, setNarrativeMode } = useWorldStore();
   const {
     pendingProposal, setPendingProposal, clearProposal,
-    incrementTurns, setProposing, shouldPropose,
+    incrementTurns, setProposing,
   } = useEventStore();
 
   const chatMessagesRef = useRef([]);
@@ -62,7 +64,11 @@ export default function WorldPage() {
     ]).then(([w, p, s, chars]) => {
       setWorld(w);
       setPlayer(p);
-      setScenes(s.scenes || []);
+      const sceneList = s.scenes || [];
+      setScenes(sceneList);
+      if (p?.status?.current_location) {
+        setCurrentScene(sceneList.find(sc => sc.id === p.status.current_location) || null);
+      }
       const charList = Array.isArray(chars) ? chars : [];
       setCharacters(charList);
       setActiveCharacters(charList.map(c => c.id));
@@ -76,21 +82,47 @@ export default function WorldPage() {
     } catch { /* ignore quota */ }
   }, [worldId, chatMessages, chatStreaming]);
 
+  async function handleEventAccepted(eventDraft) {
+    if (eventDraft.inventory_add) {
+      for (const item of eventDraft.inventory_add) {
+        try { await playerApi.addItem(worldId, item); } catch { /* ignore */ }
+      }
+    }
+    if (eventDraft.inventory_remove) {
+      for (const itemId of eventDraft.inventory_remove) {
+        try { await playerApi.deleteItem(worldId, itemId); } catch { /* ignore */ }
+      }
+    }
+    try {
+      const freshPlayer = await playerApi.get(worldId);
+      setPlayer(freshPlayer);
+    } catch { /* ignore */ }
+    try {
+      const freshWorld = await worldsApi.get(worldId);
+      setWorld(freshWorld);
+    } catch { /* ignore */ }
+  }
+
+  function handleSceneEnter(result) {
+    setCurrentScene(result.scene);
+    setPlayer((prev) => prev ? { ...prev, status: { ...prev.status, current_location: result.scene.id } } : prev);
+  }
+
   const handleTurnComplete = useCallback(async () => {
     incrementTurns();
-    if (!shouldPropose()) return;
+    if (!useEventStore.getState().shouldPropose()) return;
     setProposing(true);
     try {
       const recentMessages = chatMessagesRef.current.slice(-10).filter(m => m.content);
       if (recentMessages.length === 0) return;
-      const result = await eventsApi.propose(worldId, recentMessages, getApiConfig());
+      const result = await eventsApi.propose(worldId, recentMessages, apiConfig);
       if (result.proposal) {
         setPendingProposal(result.proposal);
       }
     } finally {
       setProposing(false);
     }
-  }, [worldId, incrementTurns, shouldPropose, setProposing, setPendingProposal, getApiConfig]);
+  }, [worldId, incrementTurns, setProposing, setPendingProposal, apiConfig]);
 
   if (loading) {
     return (
@@ -125,7 +157,7 @@ export default function WorldPage() {
         <aside className="w-48 border-r border-ink/8 flex flex-col py-4 px-3 gap-3">
           <div>
             <p className="text-[10px] text-ink/30 uppercase tracking-wider mb-1">场景</p>
-            <p className="text-xs text-ink/60 truncate">{player?.status?.current_location || '未知'}</p>
+            <p className="text-xs text-ink/60 truncate">{currentScene?.name || player?.status?.current_location || '未知'}</p>
           </div>
 
           <div className="flex-1" />
@@ -149,12 +181,13 @@ export default function WorldPage() {
             worldId={worldId}
             worldData={world}
             playerStatus={player?.status}
+            currentScene={currentScene}
             narrativeMode={narrativeMode}
             onTurnComplete={handleTurnComplete}
             tokenBudget={tokenBudget}
             characters={characters}
             activeCharacters={activeCharacters}
-            apiConfig={getApiConfig()}
+            apiConfig={apiConfig}
           />
           {pendingProposal && (
             <div className="absolute bottom-16 left-6 right-6">
@@ -162,6 +195,8 @@ export default function WorldPage() {
                 worldId={worldId}
                 proposal={pendingProposal}
                 onDismiss={clearProposal}
+                onAccepted={handleEventAccepted}
+                apiConfig={apiConfig}
               />
             </div>
           )}
@@ -169,9 +204,9 @@ export default function WorldPage() {
       </div>
 
       {/* Overlay panels */}
-      {showMap && <MapPanel worldId={worldId} onClose={() => setShowMap(false)} />}
-      {showProfile && <PlayerProfilePanel worldId={worldId} onClose={() => setShowProfile(false)} />}
-      {showInventory && <InventoryPanel worldId={worldId} onClose={() => setShowInventory(false)} />}
+      {showMap && <MapPanel worldId={worldId} scenes={scenes || []} onClose={() => setShowMap(false)} onEnter={handleSceneEnter} />}
+      {showProfile && <PlayerProfilePanel worldId={worldId} player={player} onClose={() => setShowProfile(false)} onUpdate={(updated) => setPlayer(updated)} />}
+      {showInventory && <InventoryPanel worldId={worldId} inventory={player?.inventory || []} onClose={() => setShowInventory(false)} onUpdate={(inv) => setPlayer((p) => p ? { ...p, inventory: inv } : p)} />}
       {!loading && !player && (
         <InitPlayerModal worldId={worldId} onCreated={(p) => setPlayer(p)} />
       )}

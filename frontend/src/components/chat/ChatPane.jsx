@@ -1,10 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
+import { marked } from 'marked';
 import { buildContext, streamChat } from '../../api/chat.js';
 import { useChatStore } from '../../stores/chatStore.js';
-import Spinner from '../ui/Spinner.jsx';
+
+
+marked.setOptions({ breaks: true, gfm: true });
+
+function renderMarkdown(text) {
+  return { __html: marked.parse(text || '') };
+}
 
 export default function ChatPane({
-  worldId, worldData, playerStatus, narrativeMode,
+  worldId, worldData, playerStatus, currentScene, narrativeMode,
   onTurnComplete, tokenBudget = 4096, characters = [], activeCharacters,
   apiConfig = {},
 }) {
@@ -29,6 +36,7 @@ export default function ChatPane({
     setStreaming(true);
 
     const accRef = { current: '' };
+    let streamCompleted = false;
 
     try {
       const { systemPrompt, trimmedChatHistory } = await buildContext({
@@ -37,6 +45,7 @@ export default function ChatPane({
         tokenBudget,
         mode: narrativeMode || 'ensemble',
         playerStatus,
+        currentScene,
         characters,
         activeCharacters,
       });
@@ -58,13 +67,16 @@ export default function ChatPane({
           });
         },
         onDone: () => {
+          streamCompleted = true;
           setStreaming(false);
           onTurnComplete?.();
         },
       });
     } catch {
-      setMessages([...nextMessages, { role: 'assistant', content: '（发生错误，请重试）', error: true }]);
-      setStreaming(false);
+      if (!streamCompleted) {
+        setMessages([...nextMessages, { role: 'assistant', content: '（发生错误，请重试）', error: true }]);
+        setStreaming(false);
+      }
     }
   }
 
@@ -91,12 +103,18 @@ export default function ChatPane({
             {msg.role === 'user' ? (
               <p className="inline-block text-sm text-ink/50 max-w-prose text-right">{msg.content}</p>
             ) : (
-              <p className={`max-w-prose text-sm leading-relaxed ${msg.error ? 'text-ink/40' : 'text-ink/80'}`}>
-                {msg.content}
-                {streaming && i === messages.length - 1 && !msg.content && (
-                  <span className="inline-block w-1.5 h-4 bg-ink/30 animate-pulse ml-0.5 align-text-bottom" />
+              <div className="max-w-prose text-sm leading-relaxed">
+                {msg.content ? (
+                  <div
+                    className={`prose prose-sm prose-stone ${msg.error ? 'text-ink/40' : 'text-ink/80'}`}
+                    dangerouslySetInnerHTML={renderMarkdown(msg.content)}
+                  />
+                ) : (
+                  streaming && i === messages.length - 1 && (
+                    <span className="inline-block w-1.5 h-4 bg-ink/30 animate-pulse ml-0.5 align-text-bottom" />
+                  )
                 )}
-              </p>
+              </div>
             )}
           </div>
         ))}

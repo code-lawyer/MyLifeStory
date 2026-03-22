@@ -13,9 +13,9 @@ export const charactersApi = {
   generateDraft: (worldId, description, apiConfig) =>
     apiFetch(`${BASE}/generate/character`, { method: 'POST', body: JSON.stringify({ worldId, description, apiConfig }) }),
 
-  refineDraft: (draft, section, additionalDescription, apiConfig) =>
+  refineDraft: (draft, section, instruction, apiConfig) =>
     apiFetch(`${BASE}/generate/character/refine`, {
       method: 'POST',
-      body: JSON.stringify({ draft, section, additionalDescription, apiConfig }),
+      body: JSON.stringify({ draft, section, instruction, apiConfig }),
     }),
 };

@@ -13,4 +13,9 @@ export const eventsApi = {
             method: 'POST',
             body: JSON.stringify({ chatHistory, apiConfig }),
         }),
+    compress: (worldId, apiConfig) =>
+        apiFetch(`${BASE(worldId)}/compress`, {
+            method: 'POST',
+            body: JSON.stringify({ apiConfig }),
+        }),
 };

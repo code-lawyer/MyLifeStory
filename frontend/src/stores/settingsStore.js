@@ -20,10 +20,10 @@ export const useSettingsStore = create((set, get) => {
     tokenBudget: saved.tokenBudget || 4096,
 
     save: (updates) => {
+      const next = { ...get(), ...updates };
       set(updates);
-      const { apiUrl, apiKey, model, tokenBudget } = { ...get(), ...updates };
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ apiUrl, apiKey, model, tokenBudget }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ apiUrl: next.apiUrl, apiKey: next.apiKey, model: next.model, tokenBudget: next.tokenBudget }));
       } catch { /* ignore quota errors */ }
     },
 

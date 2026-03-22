@@ -12,9 +12,9 @@ export const worldsApi = {
   generateDraft: (description, apiConfig) =>
     apiFetch(`${BASE}/generate/world`, { method: 'POST', body: JSON.stringify({ description, apiConfig }) }),
 
-  refineDraft: (draft, section, additionalDescription, apiConfig) =>
+  refineDraft: (draft, section, instruction, apiConfig) =>
     apiFetch(`${BASE}/generate/world/refine`, {
       method: 'POST',
-      body: JSON.stringify({ draft, section, additionalDescription, apiConfig }),
+      body: JSON.stringify({ draft, section, instruction, apiConfig }),
     }),
 };

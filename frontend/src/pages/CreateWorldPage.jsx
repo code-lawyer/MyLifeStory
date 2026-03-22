@@ -1,8 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { worldsApi } from '../api/worlds.js';
-import { useSettingsStore } from '../stores/settingsStore.js';
+import useDraftWizard from '../hooks/useDraftWizard.js';
 import DraftBlock from '../components/wizard/DraftBlock.jsx';
 import RefineDialog from '../components/wizard/RefineDialog.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -15,60 +14,23 @@ const SECTION_LABELS = {
 
 export default function CreateWorldPage() {
   const navigate = useNavigate();
-  const { getApiConfig } = useSettingsStore();
-  const [description, setDescription] = useState('');
-  const [draft, setDraft] = useState(null);
-  const [generating, setGenerating] = useState(false);
-  const [refiningSection, setRefiningSection] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Always-fresh ref to draft — prevents stale closure in handleRefineConfirm
-  const draftRef = useRef(draft);
-  useEffect(() => { draftRef.current = draft; }, [draft]);
-
-  async function handleGenerate() {
-    if (!description.trim()) return;
-    setGenerating(true);
-    setError(null);
-    try {
-      const { draft: d } = await worldsApi.generateDraft(description, getApiConfig());
-      setDraft(d);
-    } catch (err) {
-      setError(err?.status === 502 ? 'AI 服务暂时不可用，请稍后重试' : '生成失败，请重试');
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  const handleRefineConfirm = useCallback(async (additionalDescription) => {
-    const section = refiningSection;
-    const currentDraft = draftRef.current; // always-fresh value via ref
-    setRefiningSection(null);
-    setDraft((prev) => ({ ...prev, _refining: section }));
-    try {
-      const { draft: refined } = await worldsApi.refineDraft(currentDraft, section, additionalDescription, getApiConfig());
-      setDraft(refined);
-    } catch {
-      setError('细化失败，请重试');
-      setDraft((prev) => { const d = { ...prev }; delete d._refining; return d; });
-    }
-  }, [refiningSection]); // draft removed from deps — ref handles freshness
-
-  async function handleCreate() {
-    if (!draft || saving) return; // guard against double-submit
-    setSaving(true);
-    try {
-      const { _refining, ...cleanDraft } = draft;
+  const {
+    description, setDescription,
+    draft, setDraft,
+    generating, saving,
+    refiningSection, setRefiningSection,
+    error,
+    handleGenerate, handleRefineConfirm, handleCreate,
+  } = useDraftWizard({
+    generateFn: (desc, apiConfig) => worldsApi.generateDraft(desc, apiConfig),
+    refineFn: (d, section, text, apiConfig) => worldsApi.refineDraft(d, section, text, apiConfig),
+    saveFn: async (cleanDraft) => {
       const worldToSave = { ...cleanDraft, id: cleanDraft.id || crypto.randomUUID(), created_at: new Date().toISOString() };
       await worldsApi.create(worldToSave);
-      setSaving(false);
-      navigate(`/world/${worldToSave.id}`);
-    } catch {
-      setError('保存失败，请重试');
-      setSaving(false);
-    }
-  }
+      return `/world/${worldToSave.id}`;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-parchment">

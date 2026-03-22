@@ -10,18 +10,16 @@ const mockPlayer = {
 
 beforeEach(() => { vi.restoreAllMocks(); });
 
-it('shows player status fields', async () => {
-  vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
-  render(<PlayerProfilePanel worldId="w1" onClose={vi.fn()} />);
-  await waitFor(() => expect(screen.getByText('Hero')).toBeInTheDocument());
-  expect(screen.getByDisplayValue('90')).toBeInTheDocument(); // health input
+it('shows player status fields', () => {
+  render(<PlayerProfilePanel worldId="w1" player={mockPlayer} onClose={vi.fn()} />);
+  expect(screen.getByText('Hero')).toBeInTheDocument();
+  expect(screen.getByDisplayValue('90')).toBeInTheDocument();
 });
 
 it('calls updateStatus when saving changes', async () => {
-  vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
   vi.spyOn(playerApiModule.playerApi, 'updateStatus').mockResolvedValue(mockPlayer);
-  render(<PlayerProfilePanel worldId="w1" onClose={vi.fn()} />);
-  const healthInput = await screen.findByDisplayValue('90');
+  render(<PlayerProfilePanel worldId="w1" player={mockPlayer} onClose={vi.fn()} />);
+  const healthInput = screen.getByDisplayValue('90');
   await userEvent.clear(healthInput);
   await userEvent.type(healthInput, '85');
   await userEvent.click(screen.getByRole('button', { name: /保存/ }));

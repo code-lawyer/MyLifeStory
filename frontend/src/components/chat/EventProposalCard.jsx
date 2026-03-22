@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import { eventsApi } from '../../api/events.js';
+import { stateApi } from '../../api/state.js';
 
-export default function EventProposalCard({ worldId, proposal, onDismiss }) {
+export default function EventProposalCard({ worldId, proposal, onDismiss, onAccepted, apiConfig = {} }) {
   const [accepting, setAccepting] = useState(false);
 
   async function handleAccept() {
     setAccepting(true);
     try {
       await eventsApi.confirm(worldId, proposal.event_draft);
+      // Update world state summary (non-blocking — errors are silent)
+      stateApi.update(worldId, apiConfig).catch(() => {});
+      // Auto-compress if needed (non-blocking)
+      eventsApi.compress(worldId, apiConfig).catch(() => {});
+      onAccepted?.(proposal.event_draft);
       onDismiss();
     } catch {
       setAccepting(false);

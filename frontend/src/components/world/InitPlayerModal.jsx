@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { playerApi } from '../../api/player.js';
+import Modal from '../ui/Modal.jsx';
 
 export default function InitPlayerModal({ worldId, onCreated }) {
   const [name, setName] = useState('');
@@ -27,30 +28,28 @@ export default function InitPlayerModal({ worldId, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-ink/20 flex items-center justify-center z-50">
-      <div className="bg-parchment rounded p-6 w-80">
-        <h2 className="text-sm font-medium text-ink/80 mb-4">创建你的角色</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-ink/50">角色名</span>
-            <input
-              value={name}
-              onChange={(e) => { setName(e.target.value); setError(false); }}
-              className="border-b border-ink/15 bg-transparent px-1 py-1.5 text-ink/80 focus:border-ink/40 focus:outline-none"
-              placeholder="输入角色名"
-              autoFocus
-            />
-          </label>
-          {error && <p role="alert" className="text-xs text-ink/40">创建失败，请重试</p>}
-          <button
-            type="submit"
-            disabled={submitting || !name.trim()}
-            className="mt-1 py-1.5 text-sm bg-ink text-parchment rounded disabled:opacity-50"
-          >
-            开始冒险
-          </button>
-        </form>
-      </div>
-    </div>
+    <Modal>
+      <h2 className="text-sm font-medium text-ink/80 mb-4">创建你的角色</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs text-ink/50">角色名</span>
+          <input
+            value={name}
+            onChange={(e) => { setName(e.target.value); setError(false); }}
+            className="border-b border-ink/15 bg-transparent px-1 py-1.5 text-ink/80 focus:border-ink/40 focus:outline-none"
+            placeholder="输入角色名"
+            autoFocus
+          />
+        </label>
+        {error && <p role="alert" className="text-xs text-ink/40">创建失败，请重试</p>}
+        <button
+          type="submit"
+          disabled={submitting || !name.trim()}
+          className="mt-1 py-1.5 text-sm bg-ink text-parchment rounded disabled:opacity-50"
+        >
+          开始冒险
+        </button>
+      </form>
+    </Modal>
   );
 }
