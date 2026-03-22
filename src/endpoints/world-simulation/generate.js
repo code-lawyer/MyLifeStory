@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'node:crypto';
 import { callLLM } from './llm-client.js';
 
 export const router = express.Router();
@@ -14,6 +15,30 @@ const CHAR_GEN_SYSTEM = `You are a character creation assistant. Generate a stru
 Assign a power_tier consistent with the world's power system. IMPORTANT: Respond in the same language as the user's input. Respond only with valid JSON.`;
 
 const CHAR_REFINE_SYSTEM = (section) => `You are a character creation assistant. Update only the "${section}" section and return the complete character card JSON. IMPORTANT: Respond in the same language as the user's input. Respond only with valid JSON.`;
+
+const PROTAGONIST_SYSTEM = `You are a world-building assistant. Analyze the protagonist's biography and extract important NPCs mentioned or implied.
+Return a JSON object: {"core_npcs":[{"name":"","relationship":"","suggested_tier":"legendary|elite"}]}
+Only include characters who are significant to the protagonist's story.
+IMPORTANT: Respond in the same language as the user's input. Respond only with valid JSON.`;
+
+const SCALE_COUNTS = {
+    small:  { legendary: 2, elite: 3, normal: 5, disposable: 5, scenes: 6 },
+    medium: { legendary: 3, elite: 7, normal: 12, disposable: 8, scenes: 15 },
+    large:  { legendary: 5, elite: 15, normal: 30, disposable: 15, scenes: 35 },
+};
+
+const NPC_TIER_PROMPTS = {
+    legendary: `Generate a LEGENDARY tier NPC with rich detail (~200 chars description, personality, background, 3 example voice lines). Return JSON: {"name":"","identity":{"description":"","personality":"","background":""},"power_tier":0,"current_state":{"relationship_to_player":"neutral","status":""},"voice":{"style":"","example_lines":[]}}`,
+    elite: `Generate an ELITE tier NPC with standard detail (~80 chars description, personality, 1 voice line). Return JSON: {"name":"","identity":{"description":"","personality":""},"power_tier":0,"current_state":{"relationship_to_player":"neutral","status":""},"voice":{"style":"","example_lines":[]}}`,
+    normal: `Generate a NORMAL tier NPC with brief detail (~30 chars). Return JSON: {"name":"","identity":{"description":""},"current_state":{"relationship_to_player":"neutral"}}`,
+    disposable: `Generate a DISPOSABLE tier NPC template (role title, generic description). Return JSON: {"name":"","identity":{"description":""}}`,
+};
+
+const SCENE_PROMPT = `Generate a scene/location for this world. Return JSON: {"name":"","description":"","is_locked":false}`;
+
+function sseWrite(res, data) {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
 
 async function generate(req, res, systemPrompt, userContent) {
     const { apiConfig = {} } = req.body;
@@ -47,6 +72,25 @@ router.post('/world', async (req, res) => {
     await generate(req, res, WORLD_GEN_SYSTEM, `Create a world based on this description: ${description}`);
 });
 
+// POST /protagonist
+router.post('/protagonist', async (req, res) => {
+    const { protagonistBio, worldContext, apiConfig = {} } = req.body;
+    if (!protagonistBio) return res.status(400).json({ error: 'missing_fields' });
+    const worldInfo = worldContext ? `\nWorld context: ${JSON.stringify(worldContext.foundation)}` : '';
+    let raw;
+    try { raw = await callLLM([{ role: 'user', content: `Protagonist biography:\n${protagonistBio}${worldInfo}` }], PROTAGONIST_SYSTEM, apiConfig); }
+    catch { return res.status(502).json({ error: 'llm_unavailable' }); }
+
+    let result;
+    try {
+        const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+        result = JSON.parse(cleaned);
+    }
+    catch { return res.status(422).json({ error: 'parse_failed', raw }); }
+
+    return res.json(result);
+});
+
 // POST /character
 router.post('/character', async (req, res) => {
     const { description, worldContext, tier, relationship } = req.body;
@@ -64,4 +108,93 @@ router.post('/character/refine', async (req, res) => {
     if (!draft || !section || !instruction) return res.status(400).json({ error: 'missing_fields' });
     const userContent = `Current character card:\n${JSON.stringify(draft)}\n\nRefine the "${section}" section: ${instruction}`;
     await generate(req, res, CHAR_REFINE_SYSTEM(section), userContent);
+});
+
+// POST /bulk-npcs (SSE)
+router.post('/bulk-npcs', async (req, res) => {
+    const { worldId, worldContext, scale = 'small', apiConfig = {} } = req.body;
+    if (!worldId || !worldContext) return res.status(400).json({ error: 'missing_fields' });
+
+    const counts = SCALE_COUNTS[scale] || SCALE_COUNTS.small;
+    const tiers = ['legendary', 'elite', 'normal', 'disposable'];
+    const tasks = tiers.flatMap(tier =>
+        Array.from({ length: counts[tier] }, () => tier)
+    );
+    const total = tasks.length;
+
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    res.setTimeout(0);
+
+    const summary = { legendary: 0, elite: 0, normal: 0, disposable: 0 };
+    let done = 0;
+
+    for (const tier of tasks) {
+        const system = NPC_TIER_PROMPTS[tier] + `\nWorld: ${worldContext.foundation?.background || ''}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
+        try {
+            const raw = await callLLM([{ role: 'user', content: `Generate one ${tier} NPC for this world.` }], system, apiConfig);
+            const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+            const npc = JSON.parse(cleaned);
+            npc.id = crypto.randomUUID();
+            npc.world_id = worldId;
+            npc.tier = tier;
+            npc.is_core = false;
+            npc.is_template = tier === 'disposable';
+
+            if (req.user?.directories?.characters) {
+                const { writeCharacter } = await import('./storage/characters.js');
+                await writeCharacter(req.user.directories, npc.id, npc);
+            }
+
+            done++;
+            summary[tier]++;
+            sseWrite(res, { type: 'progress', done, total, item: npc });
+        } catch (err) {
+            done++;
+            sseWrite(res, { type: 'error', index: done, message: err.message || 'generation failed' });
+        }
+    }
+
+    sseWrite(res, { type: 'done', summary });
+    res.end();
+});
+
+// POST /scenes (SSE)
+router.post('/scenes', async (req, res) => {
+    const { worldId, worldContext, scale = 'small', apiConfig = {} } = req.body;
+    if (!worldId || !worldContext) return res.status(400).json({ error: 'missing_fields' });
+
+    const total = (SCALE_COUNTS[scale] || SCALE_COUNTS.small).scenes;
+
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    res.setTimeout(0);
+
+    const generatedScenes = [];
+    let done = 0;
+
+    for (let i = 0; i < total; i++) {
+        const system = SCENE_PROMPT + `\nWorld: ${worldContext.foundation?.background || ''}\nGeography: ${worldContext.foundation?.geography || ''}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
+        try {
+            const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. Make it distinct from previous scenes.` }], system, apiConfig);
+            const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+            const scene = JSON.parse(cleaned);
+            scene.id = crypto.randomUUID();
+            generatedScenes.push(scene);
+
+            done++;
+            sseWrite(res, { type: 'progress', done, total, item: scene });
+        } catch (err) {
+            done++;
+            sseWrite(res, { type: 'error', index: done, message: err.message || 'generation failed' });
+        }
+    }
+
+    if (req.user?.directories?.scenes && generatedScenes.length > 0) {
+        const { readScenes, writeScenes } = await import('./storage/scenes.js');
+        const existing = await readScenes(req.user.directories, worldId);
+        existing.scenes = [...(existing.scenes || []), ...generatedScenes];
+        await writeScenes(req.user.directories, worldId, existing);
+    }
+
+    sseWrite(res, { type: 'done', summary: { scenes: generatedScenes.length } });
+    res.end();
 });
