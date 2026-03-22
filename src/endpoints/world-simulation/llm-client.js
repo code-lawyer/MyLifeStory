@@ -5,6 +5,25 @@
 
 let adapter = null;
 
+function validateApiUrl(apiUrl) {
+    try {
+        const url = new URL(apiUrl);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+            throw new Error('apiUrl must use http or https protocol');
+        }
+        // Block requests to private/internal networks
+        const hostname = url.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' ||
+            hostname.startsWith('10.') || hostname.startsWith('192.168.') ||
+            /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) {
+            throw new Error('apiUrl cannot target private networks');
+        }
+    } catch (err) {
+        if (err.message.startsWith('apiUrl')) throw err;
+        throw new Error(`Invalid apiUrl: ${apiUrl}`);
+    }
+}
+
 /**
  * Override the LLM adapter (used in tests).
  * @param {((messages: object[], system: string) => Promise<string>)|null} fn
@@ -24,6 +43,7 @@ export async function callLLM(messages, systemPrompt, apiConfig) {
     if (adapter) return adapter(messages, systemPrompt);
 
     const { apiUrl, apiKey, model } = apiConfig;
+    validateApiUrl(apiUrl);
     const response = await fetch(`${apiUrl}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -65,6 +85,7 @@ export async function streamLLM(messages, systemPrompt, apiConfig, onChunk) {
     }
 
     const { apiUrl, apiKey, model } = apiConfig;
+    validateApiUrl(apiUrl);
     const response = await fetch(`${apiUrl}/chat/completions`, {
         method: 'POST',
         headers: {

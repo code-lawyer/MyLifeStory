@@ -46,12 +46,12 @@ describe('player endpoints', () => {
         const res = await fetch(`${server.url}/world_001/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ health: 'injured', reputation: 'feared' }),
+            body: JSON.stringify({ health: 30, reputation: 90 }),
         });
         expect(res.status).toBe(200);
         const player = await fetch(`${server.url}/world_001`).then(r => r.json());
-        expect(player.status.health).toBe('injured');
-        expect(player.status.reputation).toBe('feared');
+        expect(player.status.health).toBe(30);
+        expect(player.status.reputation).toBe(90);
         // location unchanged (must use scene enter)
         expect(player.status.current_location).toBe('s1');
     });

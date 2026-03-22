@@ -4,11 +4,13 @@ import { readSummaries, writeSummaries } from './storage/summaries.js';
 import { readScenes, writeScenes } from './storage/scenes.js';
 import { callLLM } from './llm-client.js';
 import { randomUUID } from 'node:crypto';
+import { validateIdParams } from './validate-id.js';
 
 export const router = express.Router();
+const vId = validateIdParams('worldId');
 
 // GET /:worldId — list events
-router.get('/:worldId', async (req, res) => {
+router.get('/:worldId', vId, async (req, res) => {
     try {
         const data = await readEvents(req.user.directories, req.params.worldId);
         res.json(data);
@@ -19,7 +21,7 @@ router.get('/:worldId', async (req, res) => {
 });
 
 // POST /:worldId — add confirmed event
-router.post('/:worldId', async (req, res) => {
+router.post('/:worldId', vId, async (req, res) => {
     try {
         const event = req.body;
         if (!event?.id || !event?.title) {
@@ -47,7 +49,7 @@ router.post('/:worldId', async (req, res) => {
 });
 
 // DELETE /:worldId/:eventId — remove event
-router.delete('/:worldId/:eventId', async (req, res) => {
+router.delete('/:worldId/:eventId', validateIdParams('worldId', 'eventId'), async (req, res) => {
     try {
         await deleteEvent(req.user.directories, req.params.worldId, req.params.eventId);
         res.sendStatus(204);
@@ -66,7 +68,7 @@ Only respond with JSON, no other text.`;
 const COMPRESS_SYSTEM = `You are a world historian. Summarize the provided list of events into a single paragraph of narrative prose. Be concise. Output plain text only.`;
 
 // POST /:worldId/propose
-router.post('/:worldId/propose', async (req, res) => {
+router.post('/:worldId/propose', vId, async (req, res) => {
     try {
         const { chatHistory, apiConfig = {} } = req.body;
         if (!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) {
@@ -111,7 +113,7 @@ router.post('/:worldId/propose', async (req, res) => {
 });
 
 // POST /:worldId/compress — compress oldest non-major events into a summary
-router.post('/:worldId/compress', async (req, res) => {
+router.post('/:worldId/compress', vId, async (req, res) => {
     try {
         const dirs = req.user.directories;
         const { apiConfig = {} } = req.body || {};

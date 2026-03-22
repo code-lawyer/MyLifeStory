@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import sanitize from 'sanitize-filename';
-import { sync as writeFileAtomicSync } from 'write-file-atomic';
+import writeFileAtomic from 'write-file-atomic';
 
 function getPath(directories, worldId) {
     return path.join(directories.worlds, sanitize(`ws_${worldId}.json`));
@@ -18,7 +18,7 @@ export async function readWorld(directories, worldId) {
 }
 
 export async function writeWorld(directories, worldId, data) {
-    writeFileAtomicSync(getPath(directories, worldId), JSON.stringify(data, null, 2));
+    await writeFileAtomic(getPath(directories, worldId), JSON.stringify(data, null, 2));
 }
 
 export async function listWorlds(directories) {

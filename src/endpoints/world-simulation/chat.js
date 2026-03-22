@@ -1,11 +1,12 @@
 // src/endpoints/world-simulation/chat.js
 import express from 'express';
 import { streamLLM } from './llm-client.js';
+import { validateIdParams } from './validate-id.js';
 
 export const router = express.Router();
 
 // POST /:worldId — stream chat response as SSE
-router.post('/:worldId', async (req, res) => {
+router.post('/:worldId', validateIdParams('worldId'), async (req, res) => {
     const { systemPrompt, messages, apiConfig = {} } = req.body;
     if (!systemPrompt || !Array.isArray(messages)) {
         return res.status(400).json({ error: 'missing_fields' });

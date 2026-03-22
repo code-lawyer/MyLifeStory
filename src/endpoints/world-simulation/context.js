@@ -67,14 +67,14 @@ router.post('/build', (req, res) => {
     const playerChars = Math.floor(totalChars * budget.player);
     const playerText = playerStatus ? `# Player Status\n${JSON.stringify(playerStatus)}` : '';
 
-    // Build chat history (remaining budget)
+    // Build chat history (remaining budget) — always include at least the newest message
     const chatChars = Math.floor(totalChars * budget.chat);
     let chatUsed = 0;
     const trimmedChatHistory = [];
     for (let i = chatHistory.length - 1; i >= 0; i--) {
         const msg = chatHistory[i];
         const len = (msg.content || '').length;
-        if (chatUsed + len > chatChars) break;
+        if (chatUsed + len > chatChars && trimmedChatHistory.length > 0) break;
         trimmedChatHistory.unshift(msg);
         chatUsed += len;
     }

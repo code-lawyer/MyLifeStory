@@ -1,7 +1,9 @@
 import express from 'express';
 import { readCharacter, writeCharacter, listCharacters, deleteCharacter } from './storage/characters.js';
+import { validateIdParams, isValidId } from './validate-id.js';
 
 export const router = express.Router();
+const vId = validateIdParams('charId');
 
 // GET / — list all characters
 router.get('/', async (req, res) => {
@@ -12,7 +14,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /:charId
-router.get('/:charId', async (req, res) => {
+router.get('/:charId', vId, async (req, res) => {
     try {
         const char = await readCharacter(req.user.directories, req.params.charId);
         if (!char) return res.status(404).json({ error: 'character_not_found' });
@@ -25,22 +27,25 @@ router.post('/', async (req, res) => {
     try {
         const char = req.body;
         if (!char?.id || !char?.name) return res.status(400).json({ error: 'missing_fields', required: ['id', 'name'] });
+        if (!isValidId(char.id)) return res.status(400).json({ error: 'invalid_id' });
         await writeCharacter(req.user.directories, char.id, char);
         res.status(201).json(char);
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
 // PUT /:charId — replace
-router.put('/:charId', async (req, res) => {
+router.put('/:charId', vId, async (req, res) => {
     try {
         if (!req.body?.name) return res.status(400).json({ error: 'missing_fields' });
-        await writeCharacter(req.user.directories, req.params.charId, req.body);
-        res.json(req.body);
+        if (req.body.id && req.body.id !== req.params.charId) return res.status(400).json({ error: 'id_mismatch' });
+        const data = { ...req.body, id: req.params.charId };
+        await writeCharacter(req.user.directories, req.params.charId, data);
+        res.json(data);
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
 // DELETE /:charId
-router.delete('/:charId', async (req, res) => {
+router.delete('/:charId', vId, async (req, res) => {
     try {
         const char = await readCharacter(req.user.directories, req.params.charId);
         if (!char) return res.status(404).json({ error: 'character_not_found' });

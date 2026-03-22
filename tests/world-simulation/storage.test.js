@@ -34,7 +34,7 @@ describe('events storage', () => {
 
     test('writeEvents persists and readEvents retrieves', async () => {
         const data = { events: [{ id: 'e1', title: 'Test Event' }] };
-        writeEvents(dirs, 'world_001', data);
+        await writeEvents(dirs, 'world_001', data);
         const result = await readEvents(dirs, 'world_001');
         expect(result).toEqual(data);
     });
@@ -65,7 +65,7 @@ describe('summaries storage', () => {
 
     test('writeSummaries persists and readSummaries retrieves', async () => {
         const data = { summaries: [{ period: '1-20', summary: 'Early history' }] };
-        writeSummaries(dirs, 'world_001', data);
+        await writeSummaries(dirs, 'world_001', data);
         expect(await readSummaries(dirs, 'world_001')).toEqual(data);
     });
 });
@@ -77,7 +77,7 @@ describe('scenes storage', () => {
 
     test('writeScenes round-trips correctly', async () => {
         const data = { scenes: [{ id: 's1', name: 'South Square' }] };
-        writeScenes(dirs, 'world_001', data);
+        await writeScenes(dirs, 'world_001', data);
         expect(await readScenes(dirs, 'world_001')).toEqual(data);
     });
 });
@@ -89,7 +89,7 @@ describe('players storage', () => {
 
     test('writePlayer round-trips correctly', async () => {
         const player = { id: 'p1', name: 'Hero', inventory: [] };
-        writePlayer(dirs, 'world_001', player);
+        await writePlayer(dirs, 'world_001', player);
         expect(await readPlayer(dirs, 'world_001')).toEqual(player);
     });
 });

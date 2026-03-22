@@ -3,13 +3,15 @@ import { readWorld, writeWorld } from './storage/worlds.js';
 import { readEvents } from './storage/events.js';
 import { readSummaries } from './storage/summaries.js';
 import { callLLM } from './llm-client.js';
+import { validateIdParams } from './validate-id.js';
 
 export const router = express.Router();
+const vId = validateIdParams('worldId');
 
 const STATE_SYSTEM = `You are a world historian. Given a list of world events, write a concise 2-3 sentence summary of the current world state in Chinese. Output plain text only.`;
 
 // GET /:worldId
-router.get('/:worldId', async (req, res) => {
+router.get('/:worldId', vId, async (req, res) => {
     try {
         const worldId = req.params.worldId;
         const world = await readWorld(req.user.directories, worldId);
@@ -25,7 +27,7 @@ router.get('/:worldId', async (req, res) => {
 });
 
 // POST /:worldId/update
-router.post('/:worldId/update', async (req, res) => {
+router.post('/:worldId/update', vId, async (req, res) => {
     try {
         const dirs = req.user.directories;
         const worldId = req.params.worldId;
