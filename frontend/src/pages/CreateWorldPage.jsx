@@ -72,25 +72,25 @@ export default function CreateWorldPage() {
 
   return (
     <div className="min-h-screen bg-parchment">
-      <header className="border-b border-ink/10 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/')} className="text-ink/50 hover:text-ink text-sm">← 返回</button>
-        <h1 className="text-lg font-bold text-ink">创建新世界</h1>
-      </header>
+      <main className="max-w-xl mx-auto px-6 py-10">
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={() => navigate('/')} className="text-ink/40 hover:text-ink/70 transition-colors text-sm">← 返回</button>
+          <h1 className="text-lg font-medium text-ink">创建新世界</h1>
+        </div>
 
-      <main className="max-w-2xl mx-auto px-6 py-8 space-y-6">
         {error && (
-          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+          <p role="alert" className="text-ink/50 text-sm mb-4">
             {error}
-          </div>
+          </p>
         )}
 
         {!draft ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <label className="block">
-              <span className="text-ink font-medium">描述你的世界</span>
-              <p className="text-sm text-ink/50 mt-1">自由描述即可，AI 会帮你整理成完整的世界设定</p>
+              <span className="text-xs text-ink/40 uppercase tracking-wider">描述你的世界</span>
+              <p className="text-xs text-ink/50 mt-1 mb-2">自由描述即可，AI 会帮你整理成完整的世界设定</p>
               <textarea
-                className="mt-2 w-full border border-ink/20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ink/30 bg-white"
+                className="w-full bg-transparent border border-ink/10 rounded focus:border-ink/20 focus:outline-none text-sm p-3 resize-none"
                 rows={6}
                 placeholder="描述你想要的世界…例如：一个以蒸汽动力为主的工业城邦，贫富差距极大，底层工人正在酝酿革命…"
                 value={description}
@@ -103,7 +103,7 @@ export default function CreateWorldPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-ink/50">对任意区块点击「细化」可以追加描述，让 AI 重新调整该部分</p>
+            <p className="text-xs text-ink/40">对任意区块点击「细化」可以追加描述，让 AI 重新调整该部分</p>
             {Object.entries(SECTION_LABELS).map(([key, label]) => (
               <DraftBlock
                 key={key}
@@ -118,7 +118,7 @@ export default function CreateWorldPage() {
               <Button onClick={handleCreate} disabled={saving}>
                 {saving ? '保存中…' : '确认创建'}
               </Button>
-              <Button variant="secondary" onClick={() => setDraft(null)}>重新生成</Button>
+              <Button variant="ghost" onClick={() => setDraft(null)}>重新生成</Button>
             </div>
           </div>
         )}

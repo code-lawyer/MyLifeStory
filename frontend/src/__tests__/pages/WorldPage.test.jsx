@@ -71,7 +71,7 @@ it('shows map panel when clicking map button', async () => {
   );
   await waitFor(() => screen.getByText('Iron Fog'));
   await userEvent.click(screen.getByRole('button', { name: /地图/ }));
-  expect(screen.getByText('地图')).toBeInTheDocument();
+  expect(screen.getByText('Town')).toBeInTheDocument();
   unmount();
 });
 

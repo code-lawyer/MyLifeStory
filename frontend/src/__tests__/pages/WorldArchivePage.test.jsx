@@ -59,10 +59,14 @@ it('deletes an event when clicking delete and removes from list', async () => {
 
 it('lists characters', async () => {
   renderPage();
+  await waitFor(() => screen.getByText('Iron Fog'));
+  await userEvent.click(screen.getByRole('button', { name: /角色/ }));
   await waitFor(() => expect(screen.getByText('Ada')).toBeInTheDocument());
 });
 
 it('lists scenes', async () => {
   renderPage();
+  await waitFor(() => screen.getByText('Iron Fog'));
+  await userEvent.click(screen.getByRole('button', { name: /场景/ }));
   await waitFor(() => expect(screen.getByText('Capital')).toBeInTheDocument());
 });

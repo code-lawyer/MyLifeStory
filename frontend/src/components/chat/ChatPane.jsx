@@ -77,36 +77,45 @@ export default function ChatPane({
 
   return (
     <div className="flex flex-col h-full">
-      <ul className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Message stream — journal style */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
         {messages.map((msg, i) => (
-          <li
+          <div
             key={i}
-            className={`max-w-prose rounded-lg px-4 py-2 ${
+            className={
               msg.role === 'user'
-                ? 'ml-auto bg-blue-600 text-white'
-                : msg.error
-                ? 'bg-red-100 text-red-700'
-                : 'bg-gray-100 text-gray-900'
-            }`}
+                ? 'text-right'
+                : ''
+            }
           >
-            {msg.content}
-            {msg.role === 'assistant' && streaming && i === messages.length - 1 && !msg.content && <Spinner />}
-          </li>
+            {msg.role === 'user' ? (
+              <p className="inline-block text-sm text-ink/50 max-w-prose text-right">{msg.content}</p>
+            ) : (
+              <p className={`max-w-prose text-sm leading-relaxed ${msg.error ? 'text-ink/40' : 'text-ink/80'}`}>
+                {msg.content}
+                {streaming && i === messages.length - 1 && !msg.content && (
+                  <span className="inline-block w-1.5 h-4 bg-ink/30 animate-pulse ml-0.5 align-text-bottom" />
+                )}
+              </p>
+            )}
+          </div>
         ))}
         <div ref={bottomRef} />
-      </ul>
-      <div className="border-t p-3 flex gap-2">
+      </div>
+
+      {/* Input — minimal */}
+      <div className="border-t border-ink/8 px-6 py-3 flex gap-3 items-end">
         <textarea
-          className="flex-1 resize-none rounded border p-2 text-sm"
-          rows={2}
+          className="flex-1 resize-none bg-transparent text-sm leading-relaxed placeholder:text-ink/30 focus:outline-none"
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="输入消息…"
+          placeholder="继续书写…"
           disabled={streaming}
         />
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          className="text-xs text-ink/40 hover:text-ink transition-colors disabled:opacity-30 pb-0.5"
           onClick={handleSend}
           disabled={streaming || !input.trim()}
         >

@@ -12,19 +12,19 @@ export default function DraftBlock({ title, content, sectionKey, onRefine, loadi
   const display = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content ?? '');
 
   return (
-    <div className="border border-ink/10 rounded-lg p-4 bg-white">
+    <div className="border border-ink/10 rounded p-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold text-ink">{title}</h3>
+        <h3 className="text-xs text-ink/40 uppercase tracking-wider">{title}</h3>
         <Button
           variant="ghost"
-          className="text-sm"
+          className="text-xs"
           onClick={() => onRefine(sectionKey)}
           disabled={loading}
         >
           {loading ? '细化中…' : '细化'}
         </Button>
       </div>
-      <pre className="text-sm text-ink/70 whitespace-pre-wrap font-sans">{display}</pre>
+      <pre className="text-sm text-ink/70 whitespace-pre-wrap font-sans leading-relaxed">{display}</pre>
     </div>
   );
 }

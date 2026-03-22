@@ -29,32 +29,38 @@ export default function MapPanel({ worldId, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <aside className="relative w-80 bg-white h-full shadow-xl flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-semibold text-lg">地图</h2>
-          <button onClick={onClose} aria-label="关闭">✕</button>
+      <div className="absolute inset-0 bg-ink/20" onClick={onClose} />
+      <aside className="relative w-80 bg-parchment h-full border-l border-ink/8 flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink/8">
+          <h2 className="text-sm font-medium text-ink/80">地图</h2>
+          <button
+            onClick={onClose}
+            aria-label="关闭"
+            className="text-ink/40 hover:text-ink/70 text-lg leading-none"
+          >
+            ×
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? <Spinner /> : error ? (
-            <p className="text-red-500 text-sm">加载失败</p>
+            <p className="text-ink/40 text-sm">加载失败</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {scenes.map((scene) => (
                 <li key={scene.id}>
                   <button
-                    className={`w-full text-left px-3 py-2 rounded border ${
+                    className={`w-full text-left px-2 py-1.5 text-sm rounded ${
                       scene.is_locked
-                        ? 'opacity-40 cursor-not-allowed border-gray-200 text-gray-500'
-                        : 'hover:bg-blue-50 border-gray-200'
+                        ? 'text-ink/30 cursor-not-allowed'
+                        : 'text-ink/70 hover:text-ink hover:bg-ink/5'
                     }`}
                     title={scene.is_locked ? scene.unlock_condition : undefined}
                     onClick={() => handleEnter(scene)}
                     disabled={scene.is_locked}
                   >
                     {scene.name}
-                    {scene.is_locked && <span className="ml-2 text-xs">🔒</span>}
-                    {enterError === scene.id && <span className="block text-xs text-red-500 mt-1">进入失败</span>}
+                    {scene.is_locked && <span className="ml-1 text-xs text-ink/30">(锁定)</span>}
+                    {enterError === scene.id && <span className="block text-xs text-ink/40 mt-0.5">进入失败</span>}
                   </button>
                 </li>
               ))}

@@ -19,11 +19,10 @@ function renderPane(props = {}) {
   );
 }
 
-it('shows empty message list initially', () => {
+it('shows empty message area initially', () => {
   renderPane();
-  expect(screen.queryByRole('list')).toBeInTheDocument();
-  // no messages yet
-  expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+  // no messages rendered yet
+  expect(screen.queryByPlaceholderText('继续书写…')).toBeInTheDocument();
 });
 
 it('sends a message and appends it to the list', async () => {

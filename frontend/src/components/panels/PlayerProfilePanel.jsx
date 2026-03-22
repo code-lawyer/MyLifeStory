@@ -33,35 +33,41 @@ export default function PlayerProfilePanel({ worldId, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <aside className="relative w-80 bg-white h-full shadow-xl flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-semibold text-lg">角色状态</h2>
-          <button onClick={onClose} aria-label="关闭">✕</button>
+      <div className="absolute inset-0 bg-ink/20" onClick={onClose} />
+      <aside className="relative w-80 bg-parchment h-full border-l border-ink/8 flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink/8">
+          <h2 className="text-sm font-medium text-ink/80">角色状态</h2>
+          <button
+            onClick={onClose}
+            aria-label="关闭"
+            className="text-ink/40 hover:text-ink/70 text-lg leading-none"
+          >
+            ×
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {!player ? (error ? <p className="text-red-500 text-sm">加载失败</p> : <Spinner />) : (
+          {!player ? (error ? <p className="text-ink/40 text-sm">加载失败</p> : <Spinner />) : (
             <div className="space-y-4">
-              <p className="font-semibold text-xl">{player.name}</p>
+              <p className="text-ink/80 font-medium">{player.name}</p>
               {[
                 { key: 'health', label: '生命值' },
                 { key: 'mental', label: '精神值' },
                 { key: 'reputation', label: '声望' },
               ].map(({ key, label }) => (
                 <label key={key} className="block text-sm">
-                  <span className="text-gray-600">{label}</span>
+                  <span className="text-ink/50 text-xs">{label}</span>
                   <input
                     type="number"
                     min={0}
                     max={100}
-                    className="mt-1 block w-full border rounded px-2 py-1"
+                    className="mt-1 block w-full border-b border-ink/15 bg-transparent px-1 py-1 text-ink/80 focus:border-ink/40 focus:outline-none"
                     value={status[key]}
                     onChange={(e) => setStatus((s) => ({ ...s, [key]: Number(e.target.value) }))}
                   />
                 </label>
               ))}
               <button
-                className="w-full py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+                className="w-full py-1.5 text-sm bg-ink text-parchment rounded disabled:opacity-50"
                 onClick={handleSave}
                 disabled={saving}
               >

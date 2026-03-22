@@ -1,7 +1,8 @@
-export default function Spinner() {
+export default function Spinner({ size = 'md' }) {
+  const s = size === 'sm' ? 'w-4 h-4 border-2' : 'w-6 h-6 border-2';
   return (
-    <div role="status" aria-label="加载中" className="flex justify-center py-8">
-      <div className="w-8 h-8 border-4 border-ink/20 border-t-ink rounded-full animate-spin" />
+    <div role="status" aria-label="加载中" className="flex justify-center py-4">
+      <div className={`${s} border-ink/10 border-t-ink/50 rounded-full animate-spin`} />
     </div>
   );
 }

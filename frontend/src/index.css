@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-parchment text-ink antialiased;
+  }
+
+  ::selection {
+    @apply bg-ink/10;
+  }
+
+  /* Scrollbar — quiet, thin */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(26, 26, 46, 0.15); border-radius: 2px; }
+}

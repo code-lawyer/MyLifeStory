@@ -27,25 +27,25 @@ export default function InitPlayerModal({ worldId, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-80 shadow-xl">
-        <h2 className="text-lg font-semibold mb-4">创建你的角色</h2>
+    <div className="fixed inset-0 bg-ink/20 flex items-center justify-center z-50">
+      <div className="bg-parchment rounded p-6 w-80">
+        <h2 className="text-sm font-medium text-ink/80 mb-4">创建你的角色</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span>角色名</span>
+            <span className="text-xs text-ink/50">角色名</span>
             <input
               value={name}
               onChange={(e) => { setName(e.target.value); setError(false); }}
-              className="border rounded px-3 py-2"
+              className="border-b border-ink/15 bg-transparent px-1 py-1.5 text-ink/80 focus:border-ink/40 focus:outline-none"
               placeholder="输入角色名"
               autoFocus
             />
           </label>
-          {error && <p role="alert" className="text-sm text-red-600">创建失败，请重试</p>}
+          {error && <p role="alert" className="text-xs text-ink/40">创建失败，请重试</p>}
           <button
             type="submit"
             disabled={submitting || !name.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+            className="mt-1 py-1.5 text-sm bg-ink text-parchment rounded disabled:opacity-50"
           >
             开始冒险
           </button>

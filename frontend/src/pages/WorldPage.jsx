@@ -20,9 +20,9 @@ import InitScenesModal from '../components/world/InitScenesModal.jsx';
 import { useSettingsStore } from '../stores/settingsStore.js';
 
 const NARRATIVE_MODES = [
-  { value: 'intimate', label: '亲密 (50% 对话)' },
-  { value: 'ensemble', label: '群像 (35% 对话)' },
-  { value: 'epic', label: '史诗 (25% 对话)' },
+  { value: 'intimate', label: '亲密' },
+  { value: 'ensemble', label: '群像' },
+  { value: 'epic', label: '史诗' },
 ];
 
 export default function WorldPage() {
@@ -50,7 +50,6 @@ export default function WorldPage() {
 
   useEffect(() => {
     useChatStore.getState().clearMessages();
-    // Restore persisted history for this world
     try {
       const stored = JSON.parse(localStorage.getItem(`world-sim-chat-${worldId}`) || '[]');
       if (Array.isArray(stored) && stored.length > 0) useChatStore.getState().setMessages(stored);
@@ -102,12 +101,12 @@ export default function WorldPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Top bar */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b bg-white shadow-sm">
-        <h1 className="text-lg font-semibold flex-1">{world?.name}</h1>
+    <div className="flex flex-col h-screen">
+      {/* Top bar — barely visible */}
+      <header className="flex items-center gap-4 px-6 py-2.5 border-b border-ink/8">
+        <h1 className="text-sm font-medium flex-1 truncate">{world?.name}</h1>
         <select
-          className="border rounded px-2 py-1 text-sm"
+          className="bg-transparent text-xs text-ink/50 focus:outline-none cursor-pointer"
           value={narrativeMode}
           onChange={(e) => setNarrativeMode(e.target.value)}
         >
@@ -115,42 +114,32 @@ export default function WorldPage() {
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
-        <Link
-          to={`/world/${worldId}/archive`}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          世界档案
+        <Link to={`/world/${worldId}/archive`} className="text-xs text-ink/40 hover:text-ink/70 transition-colors">
+          档案
         </Link>
       </header>
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar */}
-        <aside className="w-56 border-r bg-white flex flex-col py-3 px-2 gap-2">
-          <p className="text-xs text-gray-500 uppercase px-2">当前场景</p>
-          <p className="text-sm px-2 truncate">{player?.status?.current_location || '未知'}</p>
+        {/* Left sidebar — quiet */}
+        <aside className="w-48 border-r border-ink/8 flex flex-col py-4 px-3 gap-3">
+          <div>
+            <p className="text-[10px] text-ink/30 uppercase tracking-wider mb-1">场景</p>
+            <p className="text-xs text-ink/60 truncate">{player?.status?.current_location || '未知'}</p>
+          </div>
+
           <div className="flex-1" />
+
           <CharacterSelector
             characters={characters}
             active={activeCharacters}
             onChange={setActiveCharacters}
           />
-          <div className="flex gap-1 px-1">
-            <button
-              className="flex-1 py-2 text-lg rounded hover:bg-gray-100"
-              onClick={() => setShowMap(true)}
-              aria-label="地图"
-            >🗺</button>
-            <button
-              className="flex-1 py-2 text-lg rounded hover:bg-gray-100"
-              onClick={() => setShowProfile(true)}
-              aria-label="角色状态"
-            >👤</button>
-            <button
-              className="flex-1 py-2 text-lg rounded hover:bg-gray-100"
-              onClick={() => setShowInventory(true)}
-              aria-label="背包"
-            >🎒</button>
+
+          <div className="flex flex-col gap-0.5 text-xs text-ink/40">
+            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowMap(true)}>地图</button>
+            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowProfile(true)}>状态</button>
+            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowInventory(true)}>背包</button>
           </div>
         </aside>
 
@@ -168,7 +157,7 @@ export default function WorldPage() {
             apiConfig={getApiConfig()}
           />
           {pendingProposal && (
-            <div className="absolute bottom-20 left-0 right-0 px-3">
+            <div className="absolute bottom-16 left-6 right-6">
               <EventProposalCard
                 worldId={worldId}
                 proposal={pendingProposal}

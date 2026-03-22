@@ -15,20 +15,20 @@ export default function EventProposalCard({ worldId, proposal, onDismiss }) {
   }
 
   return (
-    <div className="mx-3 mb-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm shadow">
-      <p className="text-amber-800 italic mb-3">{proposal.narrative}</p>
-      <p className="font-semibold text-gray-800 mb-1">{proposal.event_draft.title}</p>
-      <p className="text-gray-600 text-xs mb-3">{proposal.event_draft.description}</p>
-      <div className="flex gap-2 justify-end">
+    <div className="mx-3 mb-2 rounded border border-ink/10 bg-parchment p-3 text-sm">
+      <p className="text-ink/70 italic mb-3">{proposal.narrative}</p>
+      <p className="font-medium text-ink/80 mb-1">{proposal.event_draft.title}</p>
+      <p className="text-ink/50 text-xs mb-3">{proposal.event_draft.description}</p>
+      <div className="flex gap-3 justify-end">
         <button
-          className="px-3 py-1 rounded border text-sm disabled:opacity-50"
+          className="text-xs text-ink/40 hover:text-ink/70 disabled:opacity-50"
           onClick={onDismiss}
           disabled={accepting}
         >
           忽略
         </button>
         <button
-          className="px-3 py-1 rounded bg-amber-500 text-white text-sm disabled:opacity-50"
+          className="text-xs text-ink/60 hover:text-ink font-medium disabled:opacity-50"
           onClick={handleAccept}
           disabled={accepting}
         >

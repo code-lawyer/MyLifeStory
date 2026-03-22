@@ -6,11 +6,14 @@ import { charactersApi } from '../api/characters.js';
 import { scenesApi } from '../api/scenes.js';
 import Spinner from '../components/ui/Spinner.jsx';
 
-const IMPACT_COLORS = {
-  minor: 'bg-gray-100 text-gray-600',
-  moderate: 'bg-blue-100 text-blue-700',
-  major: 'bg-red-100 text-red-700',
+const IMPACT_LABELS = {
+  minor: '微',
+  moderate: '中',
+  major: '重',
 };
+
+const TABS = ['events', 'characters', 'scenes'];
+const TAB_LABELS = { events: '事件', characters: '角色', scenes: '场景' };
 
 export default function WorldArchivePage() {
   const { worldId } = useParams();
@@ -20,6 +23,7 @@ export default function WorldArchivePage() {
   const [scenes, setScenes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [activeTab, setActiveTab] = useState('events');
 
   useEffect(() => {
     Promise.all([
@@ -45,81 +49,105 @@ export default function WorldArchivePage() {
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><Spinner /></div>;
-  if (error) return <div className="flex items-center justify-center h-screen"><p className="text-red-500">加载失败</p></div>;
+  if (loading) return <div className="min-h-screen bg-parchment flex items-center justify-center"><Spinner /></div>;
+  if (error) return <div className="min-h-screen bg-parchment flex items-center justify-center"><p className="text-ink/50 text-sm">加载失败</p></div>;
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4 space-y-8">
-      <div className="flex items-center gap-3">
-        <Link to={`/world/${worldId}`} className="text-blue-600 hover:underline text-sm">← 返回游戏</Link>
-        <h1 className="text-2xl font-bold"><span>{world?.name}</span> — 世界档案</h1>
-      </div>
+    <div className="min-h-screen bg-parchment">
+      <main className="max-w-2xl mx-auto px-6 py-10">
+        <div className="flex items-center gap-4 mb-6">
+          <Link to={`/world/${worldId}`} className="text-ink/40 hover:text-ink/70 transition-colors text-sm">← 返回游戏</Link>
+          <h1 className="text-lg font-medium text-ink">{world?.name} <span className="text-ink/30 font-normal">档案</span></h1>
+        </div>
 
-      {/* Current State */}
-      <section>
-        <h2 className="text-lg font-semibold mb-2">当前状态</h2>
-        <p className="text-gray-700 bg-gray-50 rounded p-3">{world?.current_state?.summary || '暂无记录'}</p>
-      </section>
+        {/* Current State */}
+        <div className="mb-8">
+          <p className="text-xs text-ink/40 uppercase tracking-wider mb-2">当前状态</p>
+          <p className="text-sm text-ink/70 leading-relaxed">{world?.current_state?.summary || '暂无记录'}</p>
+        </div>
 
-      {/* Event Timeline */}
-      <section>
-        <h2 className="text-lg font-semibold mb-2">事件时间线</h2>
-        {events.length === 0 ? (
-          <p className="text-gray-400 text-sm">暂无事件</p>
-        ) : (
-          <ul className="space-y-2">
-            {events.map((event) => (
-              <li key={event.id} className="flex items-start gap-3 border rounded p-3">
-                <span className={`text-xs px-2 py-0.5 rounded-full mt-0.5 shrink-0 ${IMPACT_COLORS[event.impact_scope] || IMPACT_COLORS.moderate}`}>
-                  {event.impact_scope}
-                </span>
-                <div className="flex-1">
-                  <p className="font-medium">{event.title}</p>
-                  <p className="text-sm text-gray-600">{event.description}</p>
-                </div>
-                <button
-                  className="text-xs text-red-500 hover:text-red-700 shrink-0"
-                  onClick={() => handleDeleteEvent(event.id)}
-                  aria-label="删除事件"
-                >
-                  删除
-                </button>
-              </li>
-            ))}
-          </ul>
+        {/* Tab Navigation */}
+        <div className="flex gap-6 mb-6 border-b border-ink/8">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2 text-sm transition-colors ${
+                activeTab === tab
+                  ? 'text-ink font-medium border-b border-ink'
+                  : 'text-ink/40 hover:text-ink/60'
+              }`}
+            >
+              {TAB_LABELS[tab]}
+            </button>
+          ))}
+        </div>
+
+        {/* Events Tab */}
+        {activeTab === 'events' && (
+          <div>
+            {events.length === 0 ? (
+              <p className="text-xs text-ink/30">暂无事件</p>
+            ) : (
+              <div>
+                {events.map((event) => (
+                  <div key={event.id} className="py-3 border-b border-ink/8 flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-ink">
+                        {event.title}
+                        <span className="text-[10px] text-ink/30 ml-2 font-normal">{IMPACT_LABELS[event.impact_scope] || event.impact_scope}</span>
+                      </p>
+                      <p className="text-xs text-ink/50 mt-0.5">{event.description}</p>
+                    </div>
+                    <button
+                      className="text-[10px] text-ink/30 hover:text-ink/60 transition-colors shrink-0 mt-1"
+                      onClick={() => handleDeleteEvent(event.id)}
+                      aria-label="删除事件"
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-      </section>
 
-      {/* Characters */}
-      <section>
-        <h2 className="text-lg font-semibold mb-2">角色列表</h2>
-        {characters.length === 0 ? (
-          <p className="text-gray-400 text-sm">暂无角色</p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-2">
-            {characters.map((c) => (
-              <li key={c.id} className="border rounded p-2 text-sm">{c.name}</li>
-            ))}
-          </ul>
+        {/* Characters Tab */}
+        {activeTab === 'characters' && (
+          <div>
+            {characters.length === 0 ? (
+              <p className="text-xs text-ink/30">暂无角色</p>
+            ) : (
+              <div>
+                {characters.map((c) => (
+                  <div key={c.id} className="py-2 border-b border-ink/8">
+                    <p className="text-sm text-ink">{c.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-      </section>
 
-      {/* Scenes */}
-      <section>
-        <h2 className="text-lg font-semibold mb-2">场景列表</h2>
-        {scenes.length === 0 ? (
-          <p className="text-gray-400 text-sm">暂无场景</p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-2">
-            {scenes.map((s) => (
-              <li key={s.id} className="border rounded p-2 text-sm">
-                {s.name}
-                {s.is_locked && <span className="ml-1 text-xs text-gray-400">🔒</span>}
-              </li>
-            ))}
-          </ul>
+        {/* Scenes Tab */}
+        {activeTab === 'scenes' && (
+          <div>
+            {scenes.length === 0 ? (
+              <p className="text-xs text-ink/30">暂无场景</p>
+            ) : (
+              <div>
+                {scenes.map((s) => (
+                  <div key={s.id} className="py-2 border-b border-ink/8 flex items-center">
+                    <p className="text-sm text-ink">{s.name}</p>
+                    {s.is_locked && <span className="ml-2 text-[10px] text-ink/30">未解锁</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-      </section>
+      </main>
     </div>
   );
 }
