@@ -8,10 +8,20 @@ export async function buildContext(payload) {
 }
 
 export async function streamChat({ worldId, systemPrompt, messages, apiConfig, onDelta, onDone }) {
-    // Uses raw fetch (not apiFetch) because SSE streams cannot be consumed as JSON
+    // Fetch CSRF token (same logic as client.js getCsrfToken)
+    let csrfToken = null;
+    try {
+        const csrfRes = await fetch('/csrf-token');
+        const csrfData = await csrfRes.json();
+        csrfToken = csrfData.token === 'disabled' ? null : csrfData.token;
+    } catch { /* ignore */ }
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrfToken) headers['x-csrf-token'] = csrfToken;
+
     const res = await fetch(`/api/world-sim/chat/${worldId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ systemPrompt, messages, apiConfig }),
     });
     if (!res.ok) {
