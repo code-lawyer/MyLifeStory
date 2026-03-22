@@ -83,3 +83,26 @@ describe('POST /generate/character', () => {
         expect(json.draft.power_tier).toBe(2);
     });
 });
+
+describe('POST /generate/character with tier and relationship', () => {
+    test('passes tier and relationship to system prompt', async () => {
+        let capturedSystem;
+        setLLMAdapter(async (msgs, system) => {
+            capturedSystem = system;
+            return JSON.stringify(CHAR_DRAFT);
+        });
+        const res = await fetch(`${server.url}/character`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                description: 'A powerful wizard',
+                worldContext: { power_system: { tiers: [] } },
+                tier: 'legendary',
+                relationship: '主角的导师',
+            }),
+        });
+        expect(res.status).toBe(200);
+        expect(capturedSystem).toContain('legendary');
+        expect(capturedSystem).toContain('主角的导师');
+    });
+});
