@@ -21,12 +21,13 @@ export default function SetupPage() {
   const [narrativeMode, setNarrativeMode] = useState('ensemble');
   const [protagonistBio, setProtagonistBio] = useState('');
   const [playerName, setPlayerName] = useState('');
-  const [coreNpcSuggestions, setCoreNpcSuggestions] = useState([]);
+  const [coreNpcResult, setCoreNpcResult] = useState(null);
   const [createdCoreNpcs, setCreatedCoreNpcs] = useState([]);
 
   useEffect(() => {
     worldsApi.get(worldId)
       .then(setWorld)
+      .catch((err) => console.error('Failed to load world for setup:', err))
       .finally(() => setLoading(false));
   }, [worldId]);
 
@@ -77,15 +78,16 @@ export default function SetupPage() {
             worldContext={world}
             worldId={worldId}
             apiConfig={getApiConfig()}
-            onComplete={(suggestions) => {
-              setCoreNpcSuggestions(suggestions);
+            onComplete={(result) => {
+              setCoreNpcResult(result);
               setStep(2);
             }}
           />
         )}
         {step === 2 && (
           <CoreNpcStep
-            suggestions={coreNpcSuggestions}
+            protagonistNpcs={coreNpcResult?.protagonistNpcs || []}
+            worldNpcs={coreNpcResult?.worldNpcs || []}
             worldId={worldId}
             worldContext={world}
             playerName={playerName}
