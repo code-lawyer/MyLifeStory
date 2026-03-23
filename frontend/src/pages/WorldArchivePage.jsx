@@ -4,6 +4,7 @@ import { worldsApi } from '../api/worlds.js';
 import { eventsApi } from '../api/events.js';
 import { charactersApi } from '../api/characters.js';
 import { scenesApi } from '../api/scenes.js';
+import { relationshipsApi } from '../api/relationships.js';
 import Spinner from '../components/ui/Spinner.jsx';
 
 const IMPACT_LABELS = {
@@ -15,8 +16,7 @@ const IMPACT_LABELS = {
 const TABS = ['events', 'characters', 'scenes'];
 const TAB_LABELS = { events: '事件', characters: '角色', scenes: '场景' };
 
-const TIER_ORDER = ['legendary', 'elite', 'normal', 'disposable'];
-const TIER_LABELS = { legendary: '传奇', elite: '精英', normal: '普通', disposable: '龙套' };
+import { TIER_ORDER, TIER_LABELS } from '../constants/tiers.js';
 
 export default function WorldArchivePage() {
   const { worldId } = useParams();
@@ -24,6 +24,7 @@ export default function WorldArchivePage() {
   const [events, setEvents] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [scenes, setScenes] = useState([]);
+  const [relationships, setRelationships] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
@@ -34,11 +35,13 @@ export default function WorldArchivePage() {
       eventsApi.list(worldId),
       charactersApi.listByWorld(worldId),
       scenesApi.list(worldId),
-    ]).then(([w, e, c, s]) => {
+      relationshipsApi.get(worldId).catch(() => ({ relationships: {} })),
+    ]).then(([w, e, c, s, rels]) => {
       setWorld(w);
       setEvents(e.events || []);
       setCharacters(c);
       setScenes(s.scenes || []);
+      setRelationships(rels.relationships || {});
     }).catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [worldId]);
@@ -123,14 +126,44 @@ export default function WorldArchivePage() {
                     <span className="text-xs text-ink/30">{group.length}</span>
                   </summary>
                   <div className="px-4 pb-3">
-                    {group.map((c) => (
-                      <div key={c.id} className="py-1.5 border-t border-ink/5 first:border-t-0">
-                        <p className="text-sm text-ink">{c.name}</p>
-                        {c.identity?.description && (
-                          <p className="text-xs text-ink/40 mt-0.5 line-clamp-1">{c.identity.description}</p>
-                        )}
-                      </div>
-                    ))}
+                    {group.map((c) => {
+                      const rel = relationships[c.id] || {};
+                      const fam = rel.familiarity || 0;
+                      const unlocked = fam >= 50;
+                      return (
+                        <div key={c.id} className="py-2.5 border-t border-ink/5 first:border-t-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-ink">{c.name}</p>
+                            <span className="text-[10px] text-ink/25">{fam}%</span>
+                          </div>
+                          <div className="h-0.5 bg-ink/8 rounded-full mt-1.5 mb-2">
+                            <div className="h-full bg-ink/30 rounded-full transition-all" style={{ width: `${fam}%` }} />
+                          </div>
+                          {unlocked ? (
+                            <div className="space-y-1.5 text-xs text-ink/50">
+                              {c.identity?.description && <p>{c.identity.description}</p>}
+                              {c.identity?.personality && <p><span className="text-ink/30">性格：</span>{c.identity.personality}</p>}
+                              {c.identity?.background && <p><span className="text-ink/30">背景：</span>{c.identity.background}</p>}
+                              {c.voice?.style && <p><span className="text-ink/30">语气：</span>{c.voice.style}</p>}
+                              {c.current_state?.relationship_to_player && (
+                                <p><span className="text-ink/30">与主角关系：</span>{c.current_state.relationship_to_player}</p>
+                              )}
+                              {rel.dark_revealed && (
+                                <details className="mt-2 border border-red-200/30 rounded-lg">
+                                  <summary className="px-3 py-1.5 cursor-pointer text-xs text-red-400/70">隐藏面</summary>
+                                  <div className="px-3 pb-2 space-y-1">
+                                    {rel.dark_personality && <p><span className="text-ink/30">隐藏性格：</span>{rel.dark_personality}</p>}
+                                    {rel.dark_motivation && <p><span className="text-ink/30">隐藏动机：</span>{rel.dark_motivation}</p>}
+                                  </div>
+                                </details>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-ink/25 italic">了解不足，无法查看详情</p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </details>
               );
