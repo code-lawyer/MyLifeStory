@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 import express from 'express';
+import _ from 'lodash';
+import sanitize from 'sanitize-filename';
 import { readWorld, writeWorld, listWorlds, deleteWorld } from './storage/worlds.js';
 import { listCharacters, writeCharacter } from './storage/characters.js';
 import { readScenes, writeScenes } from './storage/scenes.js';
@@ -7,22 +9,20 @@ import { validateIdParams, isValidId } from './validate-id.js';
 
 export const router = express.Router();
 
+const MAX_IMPORT_CHARACTERS = 200;
+const MAX_IMPORT_SCENES = 100;
+
+// Allowlisted fields for imported objects
+const WORLD_FIELDS = ['name', 'foundation', 'power_system', 'current_state', 'scale', 'narrative_mode', 'onboarding_complete', 'created_at'];
+const CHAR_FIELDS = ['name', 'identity', 'voice', 'current_state', 'power_tier', 'tier', 'is_core', 'is_template', 'world_id'];
+const SCENE_FIELDS = ['name', 'description', 'is_locked', 'characters_present'];
+
+
 // GET / — list all worlds
 router.get('/', async (req, res) => {
     try {
         const worlds = await listWorlds(req.user.directories);
         res.json(worlds);
-    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
-});
-
-const vId = validateIdParams('worldId');
-
-// GET /:worldId
-router.get('/:worldId', vId, async (req, res) => {
-    try {
-        const world = await readWorld(req.user.directories, req.params.worldId);
-        if (!world) return res.status(404).json({ error: 'world_not_found' });
-        res.json(world);
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
@@ -34,6 +34,43 @@ router.post('/', async (req, res) => {
         if (!isValidId(world.id)) return res.status(400).json({ error: 'invalid_id' });
         await writeWorld(req.user.directories, world.id, world);
         res.status(201).json(world);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
+});
+
+// POST /import — import world bundle, assign new IDs (MUST be before /:worldId routes)
+router.post('/import', async (req, res) => {
+    try {
+        const { world, characters = [], scenes = [] } = req.body;
+        if (!world || !world.name) return res.status(400).json({ error: 'invalid_bundle' });
+        if (characters.length > MAX_IMPORT_CHARACTERS) return res.status(400).json({ error: 'too_many_characters', max: MAX_IMPORT_CHARACTERS });
+        if (scenes.length > MAX_IMPORT_SCENES) return res.status(400).json({ error: 'too_many_scenes', max: MAX_IMPORT_SCENES });
+
+        const newWorldId = crypto.randomUUID();
+        const newWorld = { ..._.pick(world, WORLD_FIELDS), id: newWorldId, imported_at: new Date().toISOString() };
+        await writeWorld(req.user.directories, newWorldId, newWorld);
+
+        for (const char of characters) {
+            const newCharId = crypto.randomUUID();
+            const cleanChar = { ..._.pick(char, CHAR_FIELDS), id: newCharId, world_id: newWorldId };
+            await writeCharacter(req.user.directories, newCharId, cleanChar);
+        }
+
+        const newScenes = scenes.map(s => ({ ..._.pick(s, SCENE_FIELDS), id: crypto.randomUUID() }));
+        if (newScenes.length > 0) {
+            await writeScenes(req.user.directories, newWorldId, { scenes: newScenes });
+        }
+        res.status(201).json({ worldId: newWorldId, characters: characters.length, scenes: newScenes.length });
+    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
+});
+
+const vId = validateIdParams('worldId');
+
+// GET /:worldId
+router.get('/:worldId', vId, async (req, res) => {
+    try {
+        const world = await readWorld(req.user.directories, req.params.worldId);
+        if (!world) return res.status(404).json({ error: 'world_not_found' });
+        res.json(world);
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
@@ -53,33 +90,13 @@ router.get('/:worldId/export', vId, async (req, res) => {
     try {
         const world = await readWorld(req.user.directories, req.params.worldId);
         if (!world) return res.status(404).json({ error: 'world_not_found' });
-        const characters = await listCharacters(req.user.directories, req.params.worldId);
+        const characters = (await listCharacters(req.user.directories, req.params.worldId))
+            .map(({ hidden_traits, ...c }) => c);
         const scenesData = await readScenes(req.user.directories, req.params.worldId);
         const bundle = { _type: 'mylifestory_world', world, characters, scenes: scenesData.scenes || [] };
-        res.setHeader('Content-Disposition', `attachment; filename="world-${encodeURIComponent(world.name || world.id)}.json"`);
+        const safeName = sanitize(world.name || world.id, { replacement: '_' }).slice(0, 50);
+        res.setHeader('Content-Disposition', `attachment; filename="world-${encodeURIComponent(safeName)}.json"`);
         res.json(bundle);
-    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
-});
-
-// POST /import — import world bundle, assign new IDs
-router.post('/import', async (req, res) => {
-    try {
-        const { world, characters = [], scenes = [] } = req.body;
-        if (!world || !world.name) return res.status(400).json({ error: 'invalid_bundle' });
-        const newWorldId = crypto.randomUUID();
-        const idMap = {};
-        const newWorld = { ...world, id: newWorldId, imported_at: new Date().toISOString() };
-        await writeWorld(req.user.directories, newWorldId, newWorld);
-        for (const char of characters) {
-            const newCharId = crypto.randomUUID();
-            idMap[char.id] = newCharId;
-            await writeCharacter(req.user.directories, newCharId, { ...char, id: newCharId, world_id: newWorldId });
-        }
-        const newScenes = scenes.map(s => ({ ...s, id: crypto.randomUUID() }));
-        if (newScenes.length > 0) {
-            await writeScenes(req.user.directories, newWorldId, { scenes: newScenes });
-        }
-        res.status(201).json({ worldId: newWorldId, characters: characters.length, scenes: newScenes.length });
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
