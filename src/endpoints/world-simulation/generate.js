@@ -40,6 +40,10 @@ function sseWrite(res, data) {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
+function stripFences(raw) {
+    return raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+}
+
 async function generate(req, res, systemPrompt, userContent) {
     const { apiConfig = {} } = req.body;
     let raw;
@@ -47,11 +51,7 @@ async function generate(req, res, systemPrompt, userContent) {
     catch { return res.status(502).json({ error: 'llm_unavailable' }); }
 
     let draft;
-    try {
-        // Strip markdown code fences if the model wrapped the JSON
-        const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-        draft = JSON.parse(cleaned);
-    }
+    try { draft = JSON.parse(stripFences(raw)); }
     catch { return res.status(422).json({ error: 'parse_failed', raw }); }
 
     return res.json({ draft });
@@ -82,10 +82,7 @@ router.post('/protagonist', async (req, res) => {
     catch { return res.status(502).json({ error: 'llm_unavailable' }); }
 
     let result;
-    try {
-        const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-        result = JSON.parse(cleaned);
-    }
+    try { result = JSON.parse(stripFences(raw)); }
     catch { return res.status(422).json({ error: 'parse_failed', raw }); }
 
     return res.json(result);
@@ -127,14 +124,16 @@ router.post('/bulk-npcs', async (req, res) => {
     res.setTimeout(0);
 
     const summary = { legendary: 0, elite: 0, normal: 0, disposable: 0 };
-    let done = 0;
+    let processed = 0;
+    let succeeded = 0;
+
+    const worldSuffix = `\nWorld: ${worldContext.foundation?.background || ''}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
 
     for (const tier of tasks) {
-        const system = NPC_TIER_PROMPTS[tier] + `\nWorld: ${worldContext.foundation?.background || ''}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
+        const system = NPC_TIER_PROMPTS[tier] + worldSuffix;
         try {
             const raw = await callLLM([{ role: 'user', content: `Generate one ${tier} NPC for this world.` }], system, apiConfig);
-            const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-            const npc = JSON.parse(cleaned);
+            const npc = JSON.parse(stripFences(raw));
             npc.id = crypto.randomUUID();
             npc.world_id = worldId;
             npc.tier = tier;
@@ -146,16 +145,17 @@ router.post('/bulk-npcs', async (req, res) => {
                 await writeCharacter(req.user.directories, npc.id, npc);
             }
 
-            done++;
+            processed++;
+            succeeded++;
             summary[tier]++;
-            sseWrite(res, { type: 'progress', done, total, item: npc });
+            sseWrite(res, { type: 'progress', done: processed, total, item: npc });
         } catch (err) {
-            done++;
-            sseWrite(res, { type: 'error', index: done, message: err.message || 'generation failed' });
+            processed++;
+            sseWrite(res, { type: 'error', done: processed, total, message: err.message || 'generation failed' });
         }
     }
 
-    sseWrite(res, { type: 'done', summary });
+    sseWrite(res, { type: 'done', summary, succeeded, failed: processed - succeeded });
     res.end();
 });
 
@@ -171,23 +171,32 @@ router.post('/scenes', async (req, res) => {
     res.setTimeout(0);
 
     const generatedScenes = [];
-    let done = 0;
+    let processed = 0;
+    let succeeded = 0;
+
+    const charHint = charList ? `\nAvailable characters: ${charList}\nAssign 2-5 relevant characters to "characters_present" (use their names). Each character should appear in only 1-2 scenes — distribute them across scenes.` : '';
+    const sceneSystem = SCENE_PROMPT + `\nWorld: ${worldContext.foundation?.background || ''}\nGeography: ${worldContext.foundation?.geography || ''}${charHint}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
 
     for (let i = 0; i < total; i++) {
-        const charHint = charList ? `\nAvailable characters: ${charList}\nAssign 2-5 relevant characters to "characters_present" (use their names). Each character should appear in only 1-2 scenes — distribute them across scenes.` : '';
-        const system = SCENE_PROMPT + `\nWorld: ${worldContext.foundation?.background || ''}\nGeography: ${worldContext.foundation?.geography || ''}${charHint}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
         try {
-            const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. Make it distinct from previous scenes. Previously generated scenes: ${generatedScenes.map(s => s.name).join(', ') || 'none yet'}.` }], system, apiConfig);
-            const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-            const scene = JSON.parse(cleaned);
+            const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. Make it distinct from previous scenes. Previously generated scenes: ${generatedScenes.map(s => s.name).join(', ') || 'none yet'}.` }], sceneSystem, apiConfig);
+            const scene = JSON.parse(stripFences(raw));
+            // Map character names to IDs (must be before push and SSE emit)
+            if (scene.characters_present && characters.length > 0) {
+                scene.characters_present = scene.characters_present.map(name => {
+                    const match = characters.find(c => c.name === name);
+                    return match ? match.id : name; // keep name as fallback
+                });
+            }
             scene.id = crypto.randomUUID();
             generatedScenes.push(scene);
 
-            done++;
-            sseWrite(res, { type: 'progress', done, total, item: scene });
+            processed++;
+            succeeded++;
+            sseWrite(res, { type: 'progress', done: processed, total, item: scene });
         } catch (err) {
-            done++;
-            sseWrite(res, { type: 'error', index: done, message: err.message || 'generation failed' });
+            processed++;
+            sseWrite(res, { type: 'error', done: processed, total, message: err.message || 'generation failed' });
         }
     }
 
@@ -198,6 +207,6 @@ router.post('/scenes', async (req, res) => {
         await writeScenes(req.user.directories, worldId, existing);
     }
 
-    sseWrite(res, { type: 'done', summary: { scenes: generatedScenes.length } });
+    sseWrite(res, { type: 'done', summary: { scenes: generatedScenes.length }, succeeded, failed: processed - succeeded });
     res.end();
 });

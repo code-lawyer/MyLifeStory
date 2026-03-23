@@ -106,6 +106,7 @@ export default function WorldPage() {
 
   function handleSceneEnter(result) {
     setCurrentScene(result.scene);
+    setSelectedCharacterId(null);
     setPlayer((prev) => prev ? { ...prev, status: { ...prev.status, current_location: result.scene.id } } : prev);
   }
 
@@ -132,6 +133,11 @@ export default function WorldPage() {
       </div>
     );
   }
+
+  const sceneCharacterIds = currentScene?.characters_present || [];
+  const visibleCharacters = sceneCharacterIds.length > 0
+    ? characters.filter(c => sceneCharacterIds.includes(c.id))
+    : characters.filter(c => c.tier === 'legendary' || c.tier === 'elite');
 
   return (
     <div className="flex flex-col h-screen">
@@ -176,7 +182,7 @@ export default function WorldPage() {
           <div className="flex-1" />
 
           <CharacterSelector
-            characters={characters}
+            characters={visibleCharacters}
             selectedId={selectedCharacterId}
             onSelect={setSelectedCharacterId}
           />
