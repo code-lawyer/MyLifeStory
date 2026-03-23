@@ -8,6 +8,7 @@ import { router as generateRouter } from './generate.js';
 import { router as worldsRouter } from './worlds.js';
 import { router as charactersRouter } from './characters.js';
 import { router as chatRouter } from './chat.js';
+import { router as relationshipsRouter } from './relationships.js';
 
 export const router = express.Router();
 
@@ -22,3 +23,4 @@ router.use('/generate', generateRouter);
 router.use('/worlds', worldsRouter);
 router.use('/characters', charactersRouter);
 router.use('/chat', chatRouter);
+router.use('/relationships', relationshipsRouter);
