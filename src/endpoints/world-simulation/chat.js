@@ -25,7 +25,8 @@ router.post('/:worldId', validateIdParams('worldId'), async (req, res) => {
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         if (typeof res.flush === 'function') res.flush();
     } catch (err) {
-        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        console.error('[chat] streamLLM failed:', err.message);
+        res.write(`data: ${JSON.stringify({ error: err.message || 'LLM request failed' })}\n\n`);
         if (typeof res.flush === 'function') res.flush();
     }
     res.end();
