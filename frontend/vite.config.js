@@ -5,11 +5,12 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../public',
-    emptyOutDir: true,
+    emptyOutDir: false,
   },
   server: {
     proxy: {
       '/api': 'http://localhost:8000',
+      '/csrf-token': 'http://localhost:8000',
     },
   },
   test: {

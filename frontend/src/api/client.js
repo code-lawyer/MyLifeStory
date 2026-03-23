@@ -7,9 +7,26 @@ export class ApiError extends Error {
   }
 }
 
+async function getCsrfToken() {
+  try {
+    const res = await fetch('/csrf-token');
+    const data = await res.json();
+    return data.token === 'disabled' ? null : data.token;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
   const hasBody = options.body != null;
   const headers = { ...(hasBody ? { 'Content-Type': 'application/json' } : {}), ...options.headers };
+
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const token = await getCsrfToken();
+    if (token) headers['x-csrf-token'] = token;
+  }
+
   const res = await fetch(path, { ...options, headers });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, body);
