@@ -6,15 +6,26 @@ import ChatPane from '../../../components/chat/ChatPane.jsx';
 import * as chatApiModule from '../../../api/chat.js';
 import { useChatStore } from '../../../stores/chatStore.js';
 
+const CHAR_ID = 'char-001';
+const characters = [{ id: CHAR_ID, name: 'Alice' }];
+
 beforeEach(() => {
   vi.restoreAllMocks();
-  useChatStore.setState({ messages: [], streaming: false });
+  useChatStore.setState({ blocks: [], streaming: false });
 });
 
 function renderPane(props = {}) {
   return render(
     <MemoryRouter>
-      <ChatPane worldId="w1" worldData={{}} playerStatus={{}} narrativeMode="ensemble" {...props} />
+      <ChatPane
+        worldId="w1"
+        worldData={{}}
+        playerStatus={{}}
+        narrativeMode="ensemble"
+        characters={characters}
+        activeCharacterId={CHAR_ID}
+        {...props}
+      />
     </MemoryRouter>
   );
 }

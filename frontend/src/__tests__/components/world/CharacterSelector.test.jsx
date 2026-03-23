@@ -4,31 +4,37 @@ import userEvent from '@testing-library/user-event';
 import CharacterSelector from '../../../components/world/CharacterSelector.jsx';
 
 const chars = [
-  { id: 'c1', name: '艾拉', identity: { description: 'A mage' } },
-  { id: 'c2', name: '雷克斯', identity: { description: 'A warrior' } },
+  { id: 'c1', name: '艾拉', tier: 'legendary' },
+  { id: 'c2', name: '雷克斯', tier: 'elite' },
 ];
 
-it('renders a checkbox for each character', () => {
-  render(<CharacterSelector characters={chars} active={['c1']} onChange={vi.fn()} />);
-  expect(screen.getByLabelText('艾拉')).toBeChecked();
-  expect(screen.getByLabelText('雷克斯')).not.toBeChecked();
+it('renders a button for each character', () => {
+  render(<CharacterSelector characters={chars} selectedId="c1" onSelect={vi.fn()} />);
+  expect(screen.getByRole('button', { name: /艾拉/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /雷克斯/ })).toBeInTheDocument();
 });
 
-it('calls onChange with updated list when toggling', async () => {
-  const onChange = vi.fn();
-  render(<CharacterSelector characters={chars} active={['c1']} onChange={onChange} />);
-  await userEvent.click(screen.getByLabelText('雷克斯'));
-  expect(onChange).toHaveBeenCalledWith(['c1', 'c2']);
+it('calls onSelect with character id when clicking', async () => {
+  const onSelect = vi.fn();
+  render(<CharacterSelector characters={chars} selectedId="c1" onSelect={onSelect} />);
+  await userEvent.click(screen.getByRole('button', { name: /雷克斯/ }));
+  expect(onSelect).toHaveBeenCalledWith('c2');
 });
 
-it('removes character when unchecking', async () => {
-  const onChange = vi.fn();
-  render(<CharacterSelector characters={chars} active={['c1', 'c2']} onChange={onChange} />);
-  await userEvent.click(screen.getByLabelText('艾拉'));
-  expect(onChange).toHaveBeenCalledWith(['c2']);
+it('deselects character when clicking the selected one', async () => {
+  const onSelect = vi.fn();
+  render(<CharacterSelector characters={chars} selectedId="c1" onSelect={onSelect} />);
+  await userEvent.click(screen.getByRole('button', { name: /艾拉/ }));
+  expect(onSelect).toHaveBeenCalledWith(null);
 });
 
-it('returns null when characters array is empty', () => {
-  const { container } = render(<CharacterSelector characters={[]} active={[]} onChange={vi.fn()} />);
-  expect(container.firstChild).toBeNull();
+it('shows empty state when characters array is empty', () => {
+  render(<CharacterSelector characters={[]} selectedId={null} onSelect={vi.fn()} />);
+  expect(screen.getByText('当前场景无角色')).toBeInTheDocument();
+});
+
+it('shows tier badges for legendary and elite characters', () => {
+  render(<CharacterSelector characters={chars} selectedId={null} onSelect={vi.fn()} />);
+  expect(screen.getByText('★')).toBeInTheDocument();
+  expect(screen.getByText('◆')).toBeInTheDocument();
 });

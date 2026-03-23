@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CreateCharacterPage from '../../pages/CreateCharacterPage.jsx';
 import * as charsApiModule from '../../api/characters.js';
+import { useSettingsStore } from '../../stores/settingsStore.js';
 
 const mockCharDraft = {
   id: 'char_test',
@@ -14,7 +15,11 @@ const mockCharDraft = {
   current_state: { location: 'scene_001', goal: '推翻压迫', secrets: '前贵族' },
 };
 
-beforeEach(() => { vi.restoreAllMocks(); });
+beforeEach(() => {
+  vi.restoreAllMocks();
+  // Set valid API config so useDraftWizard doesn't short-circuit
+  useSettingsStore.setState({ apiUrl: 'http://test.example.com', apiKey: 'sk-test', model: 'gpt-4', tokenBudget: 4096 });
+});
 
 function renderPage(worldId = 'w1') {
   return render(

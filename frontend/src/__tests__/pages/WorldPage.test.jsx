@@ -22,13 +22,16 @@ const mockPlayer = {
   name: 'Hero', status: { health: 100, mental: 80, reputation: 50 },
   inventory: [],
 };
+const mockCharacters = [
+  { id: 'char-1', name: 'NPC-A', tier: 'legendary' },
+];
 
 beforeEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
   // Reset Zustand event store so turn-counter tests are not order-dependent
   useEventStore.setState({ turnsSinceLastPropose: 0, pendingProposal: null, proposing: false });
-  useChatStore.setState({ messages: [], streaming: false });
+  useChatStore.setState({ blocks: [], streaming: false });
   useSettingsStore.setState({ apiUrl: '', apiKey: '', model: '', tokenBudget: 4096 });
 });
 
@@ -36,7 +39,7 @@ function renderPage() {
   vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
   vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [{ id: 's1', name: 'Town', is_locked: false }] });
-  vi.spyOn(charactersApiModule.charactersApi, 'listByWorld').mockResolvedValue([]);
+  vi.spyOn(charactersApiModule.charactersApi, 'listByWorld').mockResolvedValue(mockCharacters);
   return render(
     <MemoryRouter initialEntries={['/world/w1']}>
       <Routes>
@@ -51,17 +54,17 @@ it('shows world name in top bar after loading', async () => {
   await waitFor(() => expect(screen.getByText('Iron Fog')).toBeInTheDocument());
 });
 
-it('renders narrative mode selector with ensemble as default', async () => {
+it('renders narrative mode label', async () => {
   renderPage();
   await waitFor(() => screen.getByText('Iron Fog'));
-  expect(screen.getByRole('combobox')).toHaveValue('ensemble');
+  expect(screen.getByText(/群像模式/)).toBeInTheDocument();
 });
 
 it('shows map panel when clicking map button', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'get').mockResolvedValue(mockWorld);
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
   vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [{ id: 's1', name: 'Town', is_locked: false }] });
-  vi.spyOn(charactersApiModule.charactersApi, 'listByWorld').mockResolvedValue([]);
+  vi.spyOn(charactersApiModule.charactersApi, 'listByWorld').mockResolvedValue(mockCharacters);
   const { unmount } = render(
     <MemoryRouter initialEntries={['/world/w1']}>
       <Routes>
@@ -80,7 +83,7 @@ it('shows event proposal card after 3 turns complete', async () => {
   vi.spyOn(playerApiModule.playerApi, 'get').mockResolvedValue(mockPlayer);
 
   vi.spyOn(scenesApiModule.scenesApi, 'list').mockResolvedValue({ scenes: [{ id: 's1', name: 'Town', is_locked: false }] });
-  vi.spyOn(charactersApiModule.charactersApi, 'listByWorld').mockResolvedValue([]);
+  vi.spyOn(charactersApiModule.charactersApi, 'listByWorld').mockResolvedValue(mockCharacters);
   vi.spyOn(chatApiModule, 'buildContext').mockResolvedValue({
     systemPrompt: 'sys', trimmedChatHistory: [], mode: 'ensemble',
   });
@@ -126,8 +129,15 @@ it('shows event proposal card after 3 turns complete', async () => {
 
 it('restores chat history from localStorage on mount', async () => {
   const stored = [
-    { role: 'user', content: 'Hello world' },
-    { role: 'assistant', content: 'Greetings!' },
+    {
+      id: 'block-1',
+      characterId: 'char-1',
+      characterName: 'NPC-A',
+      messages: [
+        { role: 'user', content: 'Hello world' },
+        { role: 'assistant', content: 'Greetings!' },
+      ],
+    },
   ];
   localStorage.setItem('world-sim-chat-w1', JSON.stringify(stored));
   renderPage();
@@ -150,7 +160,7 @@ it('shows player init modal when player is null', async () => {
   await waitFor(() => expect(screen.getByText(/创建你的角色/)).toBeInTheDocument());
 });
 
-it('saves chat messages to localStorage after each message', async () => {
+it('saves chat blocks to localStorage after each message', async () => {
   vi.spyOn(chatApiModule, 'buildContext').mockResolvedValue({
     systemPrompt: 'sys', trimmedChatHistory: [], mode: 'ensemble',
   });
@@ -164,7 +174,7 @@ it('saves chat messages to localStorage after each message', async () => {
   await userEvent.click(screen.getByRole('button', { name: /发送/ }));
   await waitFor(() => expect(screen.getByText('test message')).toBeInTheDocument());
   const stored = JSON.parse(localStorage.getItem('world-sim-chat-w1') || '[]');
-  expect(stored.some(m => m.content === 'test message')).toBe(true);
+  expect(stored.some(b => b.messages?.some(m => m.content === 'test message'))).toBe(true);
 });
 
 it('shows scene init modal when world has no scenes', async () => {

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import CreateWorldPage from '../../pages/CreateWorldPage.jsx';
 import * as worldsApiModule from '../../api/worlds.js';
+import { useSettingsStore } from '../../stores/settingsStore.js';
 
 const mockDraft = {
   id: 'world_test',
@@ -13,22 +14,29 @@ const mockDraft = {
   current_state: { summary: '动荡时期', key_tensions: [], recent_changes: '' },
 };
 
-beforeEach(() => { vi.restoreAllMocks(); });
+beforeEach(() => {
+  vi.restoreAllMocks();
+  // Set valid API config so useDraftWizard doesn't short-circuit
+  useSettingsStore.setState({ apiUrl: 'http://test.example.com', apiKey: 'sk-test', model: 'gpt-4', tokenBudget: 4096 });
+});
 
 function renderPage() {
   return render(<MemoryRouter><CreateWorldPage /></MemoryRouter>);
 }
 
+// The placeholder in the source is the longer example text
+const descPlaceholder = /一个以蒸汽动力为主的工业城邦/;
+
 it('shows description textarea and generate button initially', () => {
   renderPage();
-  expect(screen.getByPlaceholderText(/描述你想要的世界/)).toBeInTheDocument();
+  expect(screen.getByPlaceholderText(descPlaceholder)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /生成世界/ })).toBeInTheDocument();
 });
 
 it('shows draft sections after generation', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'generateDraft').mockResolvedValue({ draft: mockDraft });
   renderPage();
-  await userEvent.type(screen.getByPlaceholderText(/描述你想要的世界/), '一个工业蒸汽城市');
+  await userEvent.type(screen.getByPlaceholderText(descPlaceholder), '一个工业蒸汽城市');
   await userEvent.click(screen.getByRole('button', { name: /生成世界/ }));
   await waitFor(() => expect(screen.getByText('基础设定')).toBeInTheDocument());
   expect(screen.getByText('力量体系')).toBeInTheDocument();
@@ -38,7 +46,7 @@ it('shows draft sections after generation', async () => {
 it('shows RefineDialog when Refine button is clicked', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'generateDraft').mockResolvedValue({ draft: mockDraft });
   renderPage();
-  await userEvent.type(screen.getByPlaceholderText(/描述你想要的世界/), '一个工业城市');
+  await userEvent.type(screen.getByPlaceholderText(descPlaceholder), '一个工业城市');
   await userEvent.click(screen.getByRole('button', { name: /生成世界/ }));
   await waitFor(() => screen.getByText('基础设定'));
 
@@ -50,7 +58,7 @@ it('shows RefineDialog when Refine button is clicked', async () => {
 it('shows error alert on 502', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'generateDraft').mockRejectedValue({ status: 502, message: 'llm_unavailable' });
   renderPage();
-  await userEvent.type(screen.getByPlaceholderText(/描述你想要的世界/), '描述');
+  await userEvent.type(screen.getByPlaceholderText(descPlaceholder), '描述');
   await userEvent.click(screen.getByRole('button', { name: /生成世界/ }));
   await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   expect(screen.getByText(/AI 服务暂时不可用/)).toBeInTheDocument();
@@ -62,7 +70,7 @@ it('calls refineDraft and updates draft section after confirming in dialog', asy
   vi.spyOn(worldsApiModule.worldsApi, 'refineDraft').mockResolvedValue({ draft: refinedDraft });
 
   renderPage();
-  await userEvent.type(screen.getByPlaceholderText(/描述你想要的世界/), '一个工业城市');
+  await userEvent.type(screen.getByPlaceholderText(descPlaceholder), '一个工业城市');
   await userEvent.click(screen.getByRole('button', { name: /生成世界/ }));
   await waitFor(() => screen.getByText('基础设定'));
 
@@ -85,7 +93,7 @@ it('calls worldsApi.create and navigates on confirm create', async () => {
   vi.spyOn(worldsApiModule.worldsApi, 'create').mockResolvedValue({ ...mockDraft });
 
   renderPage();
-  await userEvent.type(screen.getByPlaceholderText(/描述你想要的世界/), '一个工业城市');
+  await userEvent.type(screen.getByPlaceholderText(descPlaceholder), '一个工业城市');
   await userEvent.click(screen.getByRole('button', { name: /生成世界/ }));
   await waitFor(() => screen.getByText('确认创建'));
 
