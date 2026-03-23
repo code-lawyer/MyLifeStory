@@ -23,10 +23,15 @@ export default function useDraftWizard({ generateFn, refineFn, saveFn }) {
 
   async function handleGenerate() {
     if (!description.trim()) return;
+    const cfg = getApiConfig();
+    if (!cfg.apiKey || !cfg.apiUrl || !cfg.model) {
+      setError('请先前往「设置」填写 API URL、API Key 和模型名称');
+      return;
+    }
     setGenerating(true);
     setError(null);
     try {
-      const { draft: d } = await generateFn(description, getApiConfig());
+      const { draft: d } = await generateFn(description, cfg);
       setDraft(d);
     } catch (err) {
       setError(err?.status === 502 ? 'AI 服务暂时不可用，请稍后重试' : '生成失败，请重试');
@@ -54,7 +59,7 @@ export default function useDraftWizard({ generateFn, refineFn, saveFn }) {
     setSaving(true);
     try {
       const { _refining, ...cleanDraft } = draft;
-      const redirectPath = await saveFn(cleanDraft);
+      const redirectPath = await saveFn(cleanDraft, description);
       setSaving(false);
       navigate(redirectPath);
     } catch {
