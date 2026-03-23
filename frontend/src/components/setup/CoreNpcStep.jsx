@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { charactersApi } from '../../api/characters.js';
+import { generateApi } from '../../api/generate.js';
 import { playerApi } from '../../api/player.js';
 import Button from '../ui/Button.jsx';
 import DraftBlock from '../wizard/DraftBlock.jsx';
+import RefineDialog from '../wizard/RefineDialog.jsx';
 
 const SECTION_LABELS = {
   identity: '身份',
@@ -11,17 +13,31 @@ const SECTION_LABELS = {
 };
 
 export default function CoreNpcStep({
-  suggestions, worldId, worldContext, playerName, protagonistBio, apiConfig, onComplete,
+  worldId, worldContext, playerName, protagonistBio,
+  protagonistNpcs = [], worldNpcs = [], apiConfig, onComplete,
 }) {
+  // Combine both groups with source tags
+  const allSuggestions = [
+    ...protagonistNpcs.map(s => ({ ...s, source: 'protagonist' })),
+    ...worldNpcs.map(s => ({ ...s, source: 'world' })),
+  ];
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draft, setDraft] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [createdNpcs, setCreatedNpcs] = useState([]);
   const [error, setError] = useState(null);
+  // Refine state
+  const [refiningSection, setRefiningSection] = useState(null);
+  const [refineSuggestions, setRefineSuggestions] = useState({});
 
-  const current = suggestions[currentIndex];
-  const isLast = currentIndex >= suggestions.length - 1;
+  const current = allSuggestions[currentIndex];
+  const isLast = currentIndex >= allSuggestions.length - 1;
+
+  // Determine if we need to show a group header
+  const prevSource = currentIndex > 0 ? allSuggestions[currentIndex - 1]?.source : null;
+  const showGroupHeader = current && current.source !== prevSource;
 
   async function handleGenerate() {
     if (!current) return;
@@ -36,7 +52,12 @@ export default function CoreNpcStep({
         current.relationship,
         { worldContext, protagonistBio },
       );
-      setDraft(d);
+      // Extract refine_suggestions if present
+      const { refine_suggestions, ...cleanDraft } = d || {};
+      if (refine_suggestions) {
+        setRefineSuggestions(refine_suggestions);
+      }
+      setDraft(cleanDraft);
     } catch {
       setError('生成失败，请重试');
     } finally {
@@ -56,9 +77,10 @@ export default function CoreNpcStep({
         is_core: true,
         is_template: false,
       };
-      await charactersApi.create(char);
-      setCreatedNpcs((prev) => [...prev, char]);
-      advance();
+      await charactersApi.create({ ...char, protagonistBio, apiConfig });
+      const updatedNpcs = [...createdNpcs, char];
+      setCreatedNpcs(updatedNpcs);
+      advance(updatedNpcs);
     } catch {
       setError('保存失败，请重试');
     } finally {
@@ -67,39 +89,63 @@ export default function CoreNpcStep({
   }
 
   function handleSkip() {
-    advance();
+    advance(createdNpcs);
   }
 
-  async function advance() {
+  // Refine handlers
+  async function handleRefineConfirm(instruction) {
+    const section = refiningSection;
+    setRefiningSection(null);
+    setDraft(prev => ({ ...prev, _refining: section }));
+    try {
+      const { draft: refined } = await generateApi.refineCharacter(draft, section, instruction, apiConfig);
+      setDraft(refined);
+    } catch {
+      setError('细化失败，请重试');
+      setDraft(prev => { const { _refining, ...d } = prev || {}; return d; });
+    }
+  }
+
+  async function handleRefreshSuggestions() {
+    if (!refiningSection || !draft) return;
+    try {
+      const { suggestions } = await generateApi.suggestRefine(draft, refiningSection, apiConfig);
+      setRefineSuggestions(prev => ({ ...prev, [refiningSection]: suggestions }));
+    } catch { /* silent */ }
+  }
+
+  async function createPlayer() {
+    try {
+      await playerApi.create(worldId, {
+        id: crypto.randomUUID(),
+        world_id: worldId,
+        name: playerName,
+        status: { health: 100, mental: 100, reputation: 0, current_location: null },
+        inventory: [],
+      });
+    } catch (err) {
+      console.warn('Player creation failed (may already exist):', err.message);
+    }
+  }
+
+  async function advance(currentNpcs) {
     setDraft(null);
     setError(null);
+    setRefineSuggestions({});
     if (isLast) {
-      // Create player
-      try {
-        await playerApi.create(worldId, {
-          id: crypto.randomUUID(),
-          world_id: worldId,
-          name: playerName,
-          status: { health: 100, mental: 100, reputation: 0, current_location: null },
-          inventory: [],
-        });
-      } catch { /* player may already exist */ }
-      onComplete(createdNpcs);
+      await createPlayer();
+      onComplete(currentNpcs);
     } else {
       setCurrentIndex((i) => i + 1);
     }
   }
 
-  if (suggestions.length === 0) {
+  if (allSuggestions.length === 0) {
     return (
       <div className="max-w-2xl">
-        <p className="text-sm text-ink/50 mb-6">AI 未从小传中识别出核心人物，直接进入下一步。</p>
-        <Button onClick={() => {
-          playerApi.create(worldId, {
-            id: crypto.randomUUID(), world_id: worldId, name: playerName,
-            status: { health: 100, mental: 100, reputation: 0, current_location: null },
-            inventory: [],
-          }).catch(() => {});
+        <p className="text-sm text-ink/50 mb-6">AI 未识别出核心人物，直接进入下一步。</p>
+        <Button onClick={async () => {
+          await createPlayer();
           onComplete([]);
         }}>继续</Button>
       </div>
@@ -108,8 +154,15 @@ export default function CoreNpcStep({
 
   return (
     <div className="max-w-3xl">
+      {/* Group header */}
+      {showGroupHeader && (
+        <p className="text-xs text-ink/30 uppercase tracking-wider mb-3 mt-2">
+          {current.source === 'protagonist' ? '小传中的核心人物' : '世界中的重要人物'}
+        </p>
+      )}
+
       <p className="text-xs text-ink/40 mb-4">
-        核心人物 {currentIndex + 1} / {suggestions.length}：{current.name}（{current.relationship}）
+        核心人物 {currentIndex + 1} / {allSuggestions.length}：{current.name}（{current.relationship}）
       </p>
 
       {!draft ? (
@@ -131,7 +184,7 @@ export default function CoreNpcStep({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
             {Object.entries(SECTION_LABELS).map(([key, label]) => (
               draft[key] ? (
-                <DraftBlock key={key} title={label} content={draft[key]} sectionKey={key} onRefine={() => {}} />
+                <DraftBlock key={key} title={label} content={draft[key]} sectionKey={key} onRefine={() => setRefiningSection(key)} />
               ) : null
             ))}
           </div>
@@ -143,6 +196,17 @@ export default function CoreNpcStep({
             <Button variant="ghost" onClick={handleSkip}>跳过</Button>
           </div>
         </div>
+      )}
+
+      {/* Refine dialog */}
+      {refiningSection && (
+        <RefineDialog
+          section={SECTION_LABELS[refiningSection]}
+          suggestions={refineSuggestions[refiningSection] || []}
+          onConfirm={handleRefineConfirm}
+          onCancel={() => setRefiningSection(null)}
+          onRefreshSuggestions={handleRefreshSuggestions}
+        />
       )}
     </div>
   );
