@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import { callLLM } from './llm-client.js';
+import { DARK_SIDE_SYSTEM } from './prompts.js';
 
 export const router = express.Router();
 
@@ -34,7 +35,7 @@ const NPC_TIER_PROMPTS = {
     disposable: `Generate a DISPOSABLE tier NPC template (role title, generic description). Return JSON: {"name":"","identity":{"description":""}}`,
 };
 
-const SCENE_PROMPT = `Generate a scene/location for this world. Return JSON: {"name":"","description":"","is_locked":false}`;
+const SCENE_PROMPT = `Generate a UNIQUE scene/location for this world. The scene name MUST be different from all previously generated scenes. Return JSON: {"name":"","description":"","is_locked":false}`;
 
 function sseWrite(res, data) {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -126,6 +127,7 @@ router.post('/bulk-npcs', async (req, res) => {
     const summary = { legendary: 0, elite: 0, normal: 0, disposable: 0 };
     let processed = 0;
     let succeeded = 0;
+    const collectedNpcs = [];
 
     const worldSuffix = `\nWorld: ${worldContext.foundation?.background || ''}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
 
@@ -145,6 +147,7 @@ router.post('/bulk-npcs', async (req, res) => {
                 await writeCharacter(req.user.directories, npc.id, npc);
             }
 
+            collectedNpcs.push(npc);
             processed++;
             succeeded++;
             summary[tier]++;
@@ -153,6 +156,44 @@ router.post('/bulk-npcs', async (req, res) => {
             processed++;
             sseWrite(res, { type: 'error', done: processed, total, message: err.message || 'generation failed' });
         }
+    }
+
+    // Dark-side generation for 20% of legendary/elite NPCs (fire-and-forget)
+    const eliteOrAbove = collectedNpcs.filter(n => n.tier === 'legendary' || n.tier === 'elite');
+    const darkCount = Math.max(1, Math.round(eliteOrAbove.length * 0.2));
+    const shuffled = [...eliteOrAbove].sort(() => Math.random() - 0.5);
+    const darkCandidates = shuffled.slice(0, darkCount);
+
+    for (const npc of darkCandidates) {
+        // Fire-and-forget: don't await, don't block SSE
+        callLLM(
+            [{ role: 'user', content: `NPC surface personality:\nName: ${npc.name}\nDescription: ${npc.identity?.description || ''}\nPersonality: ${npc.identity?.personality || ''}` }],
+            DARK_SIDE_SYSTEM,
+            apiConfig
+        ).then(async (raw) => {
+            try {
+                const ht = JSON.parse(raw.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim());
+                npc.hidden_traits = ht;
+                if (req.user?.directories?.characters) {
+                    const { writeCharacter } = await import('./storage/characters.js');
+                    await writeCharacter(req.user.directories, npc.id, npc);
+                }
+            } catch { /* skip malformed */ }
+        }).catch(() => { /* silent fail */ });
+    }
+
+    // Write initial relationship entries for legendary/elite NPCs with familiarity 0
+    if (req.user?.directories) {
+        try {
+            const { readRelationships, writeRelationships } = await import('./storage/relationships.js');
+            const relData = await readRelationships(req.user.directories, worldId);
+            for (const npc of eliteOrAbove) {
+                if (!relData.relationships[npc.id]) {
+                    relData.relationships[npc.id] = { familiarity: 0, last_interaction: null };
+                }
+            }
+            await writeRelationships(req.user.directories, worldId, relData);
+        } catch { /* ignore */ }
     }
 
     sseWrite(res, { type: 'done', summary, succeeded, failed: processed - succeeded });
@@ -171,33 +212,46 @@ router.post('/scenes', async (req, res) => {
     res.setTimeout(0);
 
     const generatedScenes = [];
+    const usedNames = new Set();
     let processed = 0;
     let succeeded = 0;
+    const MAX_RETRIES = 2;
 
     const charHint = charList ? `\nAvailable characters: ${charList}\nAssign 2-5 relevant characters to "characters_present" (use their names). Each character should appear in only 1-2 scenes — distribute them across scenes.` : '';
     const sceneSystem = SCENE_PROMPT + `\nWorld: ${worldContext.foundation?.background || ''}\nGeography: ${worldContext.foundation?.geography || ''}${charHint}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
 
     for (let i = 0; i < total; i++) {
-        try {
-            const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. Make it distinct from previous scenes. Previously generated scenes: ${generatedScenes.map(s => s.name).join(', ') || 'none yet'}.` }], sceneSystem, apiConfig);
-            const scene = JSON.parse(stripFences(raw));
-            // Map character names to IDs (must be before push and SSE emit)
-            if (scene.characters_present && characters.length > 0) {
-                scene.characters_present = scene.characters_present.map(name => {
-                    const match = characters.find(c => c.name === name);
-                    return match ? match.id : name; // keep name as fallback
-                });
-            }
-            scene.id = crypto.randomUUID();
-            generatedScenes.push(scene);
+        const previousList = [...usedNames].join('、') || '无';
+        let scene = null;
 
-            processed++;
-            succeeded++;
-            sseWrite(res, { type: 'progress', done: processed, total, item: scene });
-        } catch (err) {
-            processed++;
-            sseWrite(res, { type: 'error', done: processed, total, message: err.message || 'generation failed' });
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. DO NOT repeat any of these existing scene names: [${previousList}]. Create a completely different location.` }], sceneSystem, apiConfig);
+                const parsed = JSON.parse(stripFences(raw));
+                if (usedNames.has(parsed.name?.trim())) continue;
+                scene = parsed;
+                break;
+            } catch { /* retry */ }
         }
+
+        processed++;
+        if (!scene) {
+            sseWrite(res, { type: 'error', done: processed, total, message: 'Failed to generate unique scene' });
+            continue;
+        }
+
+        usedNames.add(scene.name.trim());
+
+        // Map character names to IDs before emitting
+        if (scene.characters_present && characters.length > 0) {
+            scene.characters_present = scene.characters_present
+                .map(name => characters.find(c => c.name === name)?.id)
+                .filter(Boolean);
+        }
+        scene.id = crypto.randomUUID();
+        generatedScenes.push(scene);
+        succeeded++;
+        sseWrite(res, { type: 'progress', done: processed, total, item: scene });
     }
 
     if (req.user?.directories?.scenes && generatedScenes.length > 0) {
