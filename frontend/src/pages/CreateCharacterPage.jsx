@@ -22,6 +22,7 @@ export default function CreateCharacterPage() {
     draft, setDraft,
     generating, saving,
     refiningSection, setRefiningSection,
+    refineSuggestions, handleRefreshSuggestions,
     error,
     handleGenerate, handleRefineConfirm, handleCreate,
   } = useDraftWizard({
@@ -90,9 +91,11 @@ export default function CreateCharacterPage() {
 
       {refiningSection && (
         <RefineDialog
-          sectionTitle={SECTION_LABELS[refiningSection]}
+          section={SECTION_LABELS[refiningSection]}
+          suggestions={refineSuggestions[refiningSection] || []}
           onConfirm={handleRefineConfirm}
           onCancel={() => setRefiningSection(null)}
+          onRefreshSuggestions={() => handleRefreshSuggestions(refiningSection)}
         />
       )}
     </div>
