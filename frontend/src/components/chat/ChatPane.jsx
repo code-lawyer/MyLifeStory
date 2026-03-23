@@ -1,20 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { buildContext, streamChat } from '../../api/chat.js';
 import { useChatStore } from '../../stores/chatStore.js';
+import { formatBlock, downloadText } from '../../utils/chat-export.js';
 import ChatBlock from './ChatBlock.jsx';
 import ChatExportMenu from './ChatExportMenu.jsx';
 
 function downloadBlock(block) {
-  const text = block.messages.map(m =>
-    m.role === 'user' ? `[你] ${m.content}` : `[${block.characterName}] ${m.content}`
-  ).join('\n\n');
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `对话-${block.characterName}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadText(`对话-${block.characterName}.txt`, formatBlock(block));
 }
 
 export default function ChatPane({
@@ -59,6 +51,8 @@ export default function ChatPane({
         currentScene,
         characters,
         activeCharacters: [activeCharacterId],
+        worldId,
+        activeCharacterId,
       });
 
       addMessage(blockId, { role: 'assistant', content: '' });

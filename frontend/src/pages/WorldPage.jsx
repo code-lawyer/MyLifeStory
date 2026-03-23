@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
@@ -11,6 +11,7 @@ import ChatPane from '../components/chat/ChatPane.jsx';
 import EventProposalCard from '../components/chat/EventProposalCard.jsx';
 import CharacterSelector from '../components/world/CharacterSelector.jsx';
 import { charactersApi } from '../api/characters.js';
+import { relationshipsApi } from '../api/relationships.js';
 import MapPanel from '../components/panels/MapPanel.jsx';
 import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
@@ -29,6 +30,7 @@ export default function WorldPage() {
   const [scenes, setScenes] = useState(null);
   const [characters, setCharacters] = useState([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState(null);
+  const [relationships, setRelationships] = useState({});
   const [loading, setLoading] = useState(true);
   const [currentScene, setCurrentScene] = useState(null);
   const [showMap, setShowMap] = useState(false);
@@ -43,13 +45,9 @@ export default function WorldPage() {
     incrementTurns, setProposing,
   } = useEventStore();
 
-  const chatMessagesRef = useRef([]);
   const { clearBlocks } = useChatStore();
   const chatBlocks = useChatStore((s) => s.blocks);
   const chatStreaming = useChatStore((s) => s.streaming);
-  useEffect(() => {
-    chatMessagesRef.current = useChatStore.getState().getAllMessages();
-  }, [chatBlocks]);
 
   useEffect(() => {
     useChatStore.getState().clearBlocks();
@@ -64,7 +62,8 @@ export default function WorldPage() {
       playerApi.get(worldId).catch(() => null),
       scenesApi.list(worldId).catch(() => ({ scenes: [] })),
       charactersApi.listByWorld(worldId).catch(() => []),
-    ]).then(([w, p, s, chars]) => {
+      relationshipsApi.get(worldId).catch(() => ({ relationships: {} })),
+    ]).then(([w, p, s, chars, rels]) => {
       setWorld(w);
       setPlayer(p);
       const sceneList = s.scenes || [];
@@ -74,6 +73,7 @@ export default function WorldPage() {
       }
       const charList = Array.isArray(chars) ? chars : [];
       setCharacters(charList);
+      setRelationships(rels.relationships || {});
       if (charList.length > 0) setSelectedCharacterId(charList[0].id);
     }).finally(() => setLoading(false));
   }, [worldId]);
@@ -111,10 +111,11 @@ export default function WorldPage() {
   }
 
   function handleSceneEnter(result) {
-    setCurrentScene(result.scene);
+    const scene = { ...result.scene, characters_present: result.characters_present || result.scene.characters_present || [] };
+    setCurrentScene(scene);
     setSelectedCharacterId(null);
     clearBlocks();
-    setPlayer((prev) => prev ? { ...prev, status: { ...prev.status, current_location: result.scene.id } } : prev);
+    setPlayer((prev) => prev ? { ...prev, status: { ...prev.status, current_location: scene.id } } : prev);
   }
 
   const handleTurnComplete = useCallback(async () => {
@@ -122,7 +123,7 @@ export default function WorldPage() {
     if (!useEventStore.getState().shouldPropose()) return;
     setProposing(true);
     try {
-      const recentMessages = chatMessagesRef.current.slice(-10).filter(m => m.content);
+      const recentMessages = useChatStore.getState().getAllMessages().slice(-10).filter(m => m.content);
       if (recentMessages.length === 0) return;
       const result = await eventsApi.propose(worldId, recentMessages, apiConfig);
       if (result.proposal) {
@@ -131,7 +132,28 @@ export default function WorldPage() {
     } finally {
       setProposing(false);
     }
-  }, [worldId, incrementTurns, setProposing, setPendingProposal, apiConfig]);
+
+    // Familiarity evaluation (fire-and-forget)
+    if (selectedCharacterId) {
+      const charBlocks = useChatStore.getState().blocks.filter(b => b.characterId === selectedCharacterId);
+      const lastBlock = charBlocks[charBlocks.length - 1];
+      if (lastBlock) {
+        const recentMsgs = lastBlock.messages.slice(-3);
+        relationshipsApi.evaluate(worldId, selectedCharacterId, recentMsgs, apiConfig)
+          .then((result) => {
+            setRelationships(prev => ({
+              ...prev,
+              [selectedCharacterId]: {
+                ...(prev[selectedCharacterId] || {}),
+                familiarity: result.familiarity,
+                last_interaction: new Date().toISOString(),
+              },
+            }));
+          })
+          .catch((err) => console.warn('[WorldPage] familiarity evaluate failed:', err.message));
+      }
+    }
+  }, [worldId, selectedCharacterId, incrementTurns, setProposing, setPendingProposal, apiConfig]);
 
   if (loading) {
     return (
@@ -192,6 +214,7 @@ export default function WorldPage() {
             characters={visibleCharacters}
             selectedId={selectedCharacterId}
             onSelect={setSelectedCharacterId}
+            relationships={relationships}
           />
 
           <div className="flex flex-col gap-0.5 text-xs text-ink/40">

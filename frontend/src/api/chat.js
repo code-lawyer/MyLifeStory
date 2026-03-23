@@ -1,4 +1,5 @@
 import { apiFetch } from './client.js';
+import { getCsrfToken } from './csrf.js';
 
 export async function buildContext(payload) {
     return apiFetch('/api/world-sim/context/build', {
@@ -8,14 +9,7 @@ export async function buildContext(payload) {
 }
 
 export async function streamChat({ worldId, systemPrompt, messages, apiConfig, onDelta, onDone }) {
-    // Fetch CSRF token (same logic as client.js getCsrfToken)
-    let csrfToken = null;
-    try {
-        const csrfRes = await fetch('/csrf-token');
-        const csrfData = await csrfRes.json();
-        csrfToken = csrfData.token === 'disabled' ? null : csrfData.token;
-    } catch { /* ignore */ }
-
+    const csrfToken = await getCsrfToken();
     const headers = { 'Content-Type': 'application/json' };
     if (csrfToken) headers['x-csrf-token'] = csrfToken;
 
