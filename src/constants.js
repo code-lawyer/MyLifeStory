@@ -47,6 +47,7 @@ export const USER_DIRECTORY_TEMPLATE = Object.freeze({
     worldSummaries: 'world-summaries',
     scenes: 'scenes',
     players: 'players',
+    relationships: 'relationships',
     sysprompt: 'sysprompt',
     reasoning: 'reasoning',
 });
