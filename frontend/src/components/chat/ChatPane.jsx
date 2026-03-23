@@ -1,56 +1,67 @@
 import { useState, useRef, useEffect } from 'react';
-import { marked } from 'marked';
 import { buildContext, streamChat } from '../../api/chat.js';
 import { useChatStore } from '../../stores/chatStore.js';
+import ChatBlock from './ChatBlock.jsx';
+import ChatExportMenu from './ChatExportMenu.jsx';
 
-
-marked.setOptions({ breaks: true, gfm: true });
-
-function renderMarkdown(text) {
-  return { __html: marked.parse(text || '') };
+function downloadBlock(block) {
+  const text = block.messages.map(m =>
+    m.role === 'user' ? `[你] ${m.content}` : `[${block.characterName}] ${m.content}`
+  ).join('\n\n');
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `对话-${block.characterName}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function ChatPane({
   worldId, worldData, playerStatus, currentScene, narrativeMode,
-  onTurnComplete, tokenBudget = 4096, characters = [], activeCharacters,
+  onTurnComplete, tokenBudget = 4096, characters = [], activeCharacterId,
   apiConfig = {},
 }) {
-  const { messages, streaming, setMessages, setStreaming } = useChatStore();
+  const {
+    blocks, streaming, ensureBlock, addMessage,
+    updateLastMessage, getAllMessages, setStreaming,
+  } = useChatStore();
   const [input, setInput] = useState('');
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    if (bottomRef.current && typeof bottomRef.current.scrollIntoView === 'function') {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
+    if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [blocks]);
+
+  const activeChar = characters.find(c => c.id === activeCharacterId);
 
   async function handleSend() {
     const text = input.trim();
-    if (!text || streaming) return;
+    if (!text || streaming || !activeCharacterId) return;
 
+    const blockId = ensureBlock(activeCharacterId, activeChar?.name || '未知');
     const userMsg = { role: 'user', content: text };
-    const nextMessages = [...messages, userMsg];
-    setMessages(nextMessages);
+    addMessage(blockId, userMsg);
     setInput('');
     setStreaming(true);
 
+    const allMessages = getAllMessages();
     const accRef = { current: '' };
     let streamCompleted = false;
 
     try {
       const { systemPrompt, trimmedChatHistory } = await buildContext({
         worldCard: worldData,
-        chatHistory: nextMessages,
+        chatHistory: allMessages,
         tokenBudget,
         mode: narrativeMode || 'ensemble',
         playerStatus,
         currentScene,
         characters,
-        activeCharacters,
+        activeCharacters: [activeCharacterId],
       });
 
-      setMessages([...nextMessages, { role: 'assistant', content: '' }]);
+      addMessage(blockId, { role: 'assistant', content: '' });
 
       await streamChat({
         worldId,
@@ -59,12 +70,7 @@ export default function ChatPane({
         apiConfig,
         onDelta: (delta) => {
           accRef.current += delta;
-          const accumulated = accRef.current;
-          setMessages((prev) => {
-            const next = [...prev];
-            next[next.length - 1] = { role: 'assistant', content: accumulated };
-            return next;
-          });
+          updateLastMessage(blockId, accRef.current);
         },
         onDone: () => {
           streamCompleted = true;
@@ -72,56 +78,52 @@ export default function ChatPane({
           onTurnComplete?.();
         },
       });
-    } catch {
+    } catch (err) {
+      console.error('[ChatPane] send failed:', err);
       if (!streamCompleted) {
-        setMessages([...nextMessages, { role: 'assistant', content: '（发生错误，请重试）', error: true }]);
+        const detail = err?.message || '未知错误';
+        addMessage(blockId, { role: 'assistant', content: `（发生错误: ${detail}）`, error: true });
         setStreaming(false);
       }
     }
   }
 
-  async function handleKeyDown(e) {
+  function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      await handleSend();
+      handleSend();
     }
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Message stream — journal style */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={
-              msg.role === 'user'
-                ? 'text-right'
-                : ''
-            }
-          >
-            {msg.role === 'user' ? (
-              <p className="inline-block text-sm text-ink/50 max-w-prose text-right">{msg.content}</p>
-            ) : (
-              <div className="max-w-prose text-sm leading-relaxed">
-                {msg.content ? (
-                  <div
-                    className={`prose prose-sm prose-stone ${msg.error ? 'text-ink/40' : 'text-ink/80'}`}
-                    dangerouslySetInnerHTML={renderMarkdown(msg.content)}
-                  />
-                ) : (
-                  streaming && i === messages.length - 1 && (
-                    <span className="inline-block w-1.5 h-4 bg-ink/30 animate-pulse ml-0.5 align-text-bottom" />
-                  )
-                )}
+        {blocks.map((block, i) => (
+          <div key={block.id}>
+            {i > 0 && blocks[i - 1].characterId !== block.characterId && (
+              <div className="flex items-center gap-3 py-3">
+                <div className="flex-1 border-t border-ink/10" />
+                <span className="text-[10px] text-ink/30 shrink-0">
+                  切换到与 {block.characterName} 的对话
+                </span>
+                <div className="flex-1 border-t border-ink/10" />
               </div>
             )}
+            <ChatBlock
+              block={block}
+              isStreaming={streaming && i === blocks.length - 1}
+              onExport={downloadBlock}
+            />
           </div>
         ))}
+        {blocks.length === 0 && (
+          <p className="text-xs text-ink/30 text-center py-10">
+            {activeCharacterId ? '开始书写你的故事…' : '请先在左侧选择一个角色'}
+          </p>
+        )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — minimal */}
       <div className="border-t border-ink/8 px-6 py-3 flex gap-3 items-end">
         <textarea
           className="flex-1 resize-none bg-transparent text-sm leading-relaxed placeholder:text-ink/30 focus:outline-none"
@@ -129,13 +131,14 @@ export default function ChatPane({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="继续书写…"
-          disabled={streaming}
+          placeholder={activeCharacterId ? '继续书写…' : '请先选择对话角色'}
+          disabled={streaming || !activeCharacterId}
         />
+        <ChatExportMenu />
         <button
           className="text-xs text-ink/40 hover:text-ink transition-colors disabled:opacity-30 pb-0.5"
           onClick={handleSend}
-          disabled={streaming || !input.trim()}
+          disabled={streaming || !input.trim() || !activeCharacterId}
         >
           发送
         </button>

@@ -44,14 +44,20 @@ export default function WorldPage() {
   } = useEventStore();
 
   const chatMessagesRef = useRef([]);
-  const { messages: chatMessages, streaming: chatStreaming } = useChatStore();
-  useEffect(() => { chatMessagesRef.current = chatMessages; }, [chatMessages]);
+  const { clearBlocks } = useChatStore();
+  const chatBlocks = useChatStore((s) => s.blocks);
+  const chatStreaming = useChatStore((s) => s.streaming);
+  useEffect(() => {
+    chatMessagesRef.current = useChatStore.getState().getAllMessages();
+  }, [chatBlocks]);
 
   useEffect(() => {
-    useChatStore.getState().clearMessages();
+    useChatStore.getState().clearBlocks();
     try {
       const stored = JSON.parse(localStorage.getItem(`world-sim-chat-${worldId}`) || '[]');
-      if (Array.isArray(stored) && stored.length > 0) useChatStore.getState().setMessages(stored);
+      if (Array.isArray(stored) && stored.length > 0 && stored[0]?.messages) {
+        useChatStore.getState().setBlocks(stored);
+      }
     } catch { /* ignore */ }
     Promise.all([
       worldsApi.get(worldId),
@@ -79,11 +85,11 @@ export default function WorldPage() {
   }, [world, worldId, navigate]);
 
   useEffect(() => {
-    if (chatMessages.length === 0 || chatStreaming) return;
+    if (chatBlocks.length === 0 || chatStreaming) return;
     try {
-      localStorage.setItem(`world-sim-chat-${worldId}`, JSON.stringify(chatMessages));
+      localStorage.setItem(`world-sim-chat-${worldId}`, JSON.stringify(chatBlocks));
     } catch { /* ignore quota */ }
-  }, [worldId, chatMessages, chatStreaming]);
+  }, [worldId, chatBlocks, chatStreaming]);
 
   async function handleEventAccepted(eventDraft) {
     if (eventDraft.inventory_add) {
@@ -107,6 +113,7 @@ export default function WorldPage() {
   function handleSceneEnter(result) {
     setCurrentScene(result.scene);
     setSelectedCharacterId(null);
+    clearBlocks();
     setPlayer((prev) => prev ? { ...prev, status: { ...prev.status, current_location: result.scene.id } } : prev);
   }
 
@@ -196,13 +203,6 @@ export default function WorldPage() {
 
         {/* Chat pane */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          {selectedCharacterId && (
-            <div className="px-4 py-1.5 border-b border-ink/8 bg-white/40">
-              <p className="text-xs text-ink/50">
-                你正在和 <span className="font-medium text-ink/70">{characters.find(c => c.id === selectedCharacterId)?.name}</span> 对话
-              </p>
-            </div>
-          )}
           <ChatPane
             worldId={worldId}
             worldData={world}
@@ -212,7 +212,7 @@ export default function WorldPage() {
             onTurnComplete={handleTurnComplete}
             tokenBudget={tokenBudget}
             characters={characters}
-            activeCharacters={selectedCharacterId ? [selectedCharacterId] : []}
+            activeCharacterId={selectedCharacterId}
             apiConfig={apiConfig}
           />
           {pendingProposal && (
