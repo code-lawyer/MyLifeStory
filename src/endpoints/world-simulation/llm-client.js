@@ -11,13 +11,6 @@ function validateApiUrl(apiUrl) {
         if (!['http:', 'https:'].includes(url.protocol)) {
             throw new Error('apiUrl must use http or https protocol');
         }
-        // Block requests to private/internal networks
-        const hostname = url.hostname;
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' ||
-            hostname.startsWith('10.') || hostname.startsWith('192.168.') ||
-            /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) {
-            throw new Error('apiUrl cannot target private networks');
-        }
     } catch (err) {
         if (err.message.startsWith('apiUrl')) throw err;
         throw new Error(`Invalid apiUrl: ${apiUrl}`);
