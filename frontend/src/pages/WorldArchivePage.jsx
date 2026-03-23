@@ -15,6 +15,9 @@ const IMPACT_LABELS = {
 const TABS = ['events', 'characters', 'scenes'];
 const TAB_LABELS = { events: '事件', characters: '角色', scenes: '场景' };
 
+const TIER_ORDER = ['legendary', 'elite', 'normal', 'disposable'];
+const TIER_LABELS = { legendary: '传奇', elite: '精英', normal: '普通', disposable: '龙套' };
+
 export default function WorldArchivePage() {
   const { worldId } = useParams();
   const [world, setWorld] = useState(null);
@@ -108,11 +111,32 @@ export default function WorldArchivePage() {
         {/* Characters Tab */}
         {activeTab === 'characters' && (characters.length === 0 ? (
           <p className="text-xs text-ink/30">暂无角色</p>
-        ) : characters.map((c) => (
-          <div key={c.id} className="py-2 border-b border-ink/8">
-            <p className="text-sm text-ink">{c.name}</p>
+        ) : (
+          <div className="space-y-2">
+            {TIER_ORDER.map((tier) => {
+              const group = characters.filter((c) => (c.tier || 'normal') === tier);
+              if (group.length === 0) return null;
+              return (
+                <details key={tier} className="border border-ink/8 rounded-lg" open={tier === 'legendary' || tier === 'elite'}>
+                  <summary className="px-4 py-2.5 cursor-pointer select-none flex items-center justify-between">
+                    <span className="text-sm font-medium text-ink/70">{TIER_LABELS[tier] || tier}</span>
+                    <span className="text-xs text-ink/30">{group.length}</span>
+                  </summary>
+                  <div className="px-4 pb-3">
+                    {group.map((c) => (
+                      <div key={c.id} className="py-1.5 border-t border-ink/5 first:border-t-0">
+                        <p className="text-sm text-ink">{c.name}</p>
+                        {c.identity?.description && (
+                          <p className="text-xs text-ink/40 mt-0.5 line-clamp-1">{c.identity.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              );
+            })}
           </div>
-        )))}
+        ))}
 
         {/* Scenes Tab */}
         {activeTab === 'scenes' && (scenes.length === 0 ? (
