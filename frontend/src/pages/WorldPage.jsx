@@ -76,7 +76,7 @@ export default function WorldPage() {
     if (world && world.onboarding_complete === false) {
       navigate(`/world/${worldId}/setup`, { replace: true });
     }
-  }, [world]);
+  }, [world, worldId, navigate]);
 
   useEffect(() => {
     if (chatMessages.length === 0 || chatStreaming) return;
@@ -96,14 +96,12 @@ export default function WorldPage() {
         try { await playerApi.deleteItem(worldId, itemId); } catch { /* ignore */ }
       }
     }
-    try {
-      const freshPlayer = await playerApi.get(worldId);
-      setPlayer(freshPlayer);
-    } catch { /* ignore */ }
-    try {
-      const freshWorld = await worldsApi.get(worldId);
-      setWorld(freshWorld);
-    } catch { /* ignore */ }
+    const [freshPlayer, freshWorld] = await Promise.all([
+      playerApi.get(worldId).catch(() => null),
+      worldsApi.get(worldId).catch(() => null),
+    ]);
+    if (freshPlayer) setPlayer(freshPlayer);
+    if (freshWorld) setWorld(freshWorld);
   }
 
   function handleSceneEnter(result) {
@@ -139,11 +137,31 @@ export default function WorldPage() {
     <div className="flex flex-col h-screen">
       {/* Top bar — barely visible */}
       <header className="flex items-center gap-4 px-6 py-2.5 border-b border-ink/8">
+        <button
+          onClick={() => navigate('/')}
+          className="text-xs text-ink/40 hover:text-ink/70 transition-colors"
+        >
+          ← 返回
+        </button>
         <h1 className="text-sm font-medium flex-1 truncate">{world?.name}</h1>
         <span className="text-xs text-ink/40">{NARRATIVE_MODE_LABELS[narrativeMode] || '群像'}模式</span>
         <Link to={`/world/${worldId}/archive`} className="text-xs text-ink/40 hover:text-ink/70 transition-colors">
           档案
         </Link>
+        <button
+          onClick={async () => {
+            if (!window.confirm(`确认删除「${world?.name}」？此操作不可恢复。`)) return;
+            try {
+              await worldsApi.delete(worldId);
+              navigate('/', { replace: true });
+            } catch {
+              alert('删除失败');
+            }
+          }}
+          className="text-xs text-red-400 hover:text-red-600 transition-colors"
+        >
+          删除世界
+        </button>
       </header>
 
       {/* Body */}
