@@ -13,6 +13,6 @@ export const generateApi = {
   bulkNpcs: (worldId, worldContext, scale, apiConfig, onChunk) =>
     fetchSSE(`${BASE}/bulk-npcs`, { worldId, worldContext, scale, apiConfig }, onChunk),
 
-  scenes: (worldId, worldContext, scale, apiConfig, onChunk) =>
-    fetchSSE(`${BASE}/scenes`, { worldId, worldContext, scale, apiConfig }, onChunk),
+  scenes: (worldId, worldContext, scale, apiConfig, onChunk, characters = []) =>
+    fetchSSE(`${BASE}/scenes`, { worldId, worldContext, scale, apiConfig, characters }, onChunk),
 };

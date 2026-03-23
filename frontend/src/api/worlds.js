@@ -9,6 +9,9 @@ export const worldsApi = {
   update: (id, world) => apiFetch(`${BASE}/worlds/${id}`, { method: 'PUT', body: JSON.stringify(world) }),
   delete: (id) => apiFetch(`${BASE}/worlds/${id}`, { method: 'DELETE' }),
 
+  exportWorld: (worldId) => apiFetch(`${BASE}/worlds/${worldId}/export`),
+  importWorld: (bundle) => apiFetch(`${BASE}/worlds/import`, { method: 'POST', body: JSON.stringify(bundle) }),
+
   generateDraft: (description, apiConfig, scale) =>
     apiFetch(`${BASE}/generate/world`, { method: 'POST', body: JSON.stringify({ description, apiConfig, scale }) }),
 

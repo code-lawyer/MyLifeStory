@@ -34,6 +34,7 @@ export default function CoreNpcStep({
         apiConfig,
         current.suggested_tier,
         current.relationship,
+        { worldContext, protagonistBio },
       );
       setDraft(d);
     } catch {

@@ -10,8 +10,8 @@ export const charactersApi = {
   delete: (id) => apiFetch(`${BASE}/characters/${id}`, { method: 'DELETE' }),
   listByWorld: (worldId) => apiFetch(`${BASE}/characters?worldId=${worldId}`),
 
-  generateDraft: (worldId, description, apiConfig, tier, relationship) =>
-    apiFetch(`${BASE}/generate/character`, { method: 'POST', body: JSON.stringify({ worldId, description, apiConfig, tier, relationship }) }),
+  generateDraft: (worldId, description, apiConfig, tier, relationship, { worldContext, protagonistBio } = {}) =>
+    apiFetch(`${BASE}/generate/character`, { method: 'POST', body: JSON.stringify({ worldId, description, apiConfig, tier, relationship, worldContext, protagonistBio }) }),
 
   refineDraft: (draft, section, instruction, apiConfig) =>
     apiFetch(`${BASE}/generate/character/refine`, {

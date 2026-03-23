@@ -17,6 +17,7 @@ const SECTION_LABELS = {
 export default function CreateWorldPage() {
   const navigate = useNavigate();
   const [scale, setScale] = useState('medium');
+  const [worldName, setWorldName] = useState('');
 
   const {
     description, setDescription,
@@ -32,7 +33,7 @@ export default function CreateWorldPage() {
       const worldToSave = {
         ...cleanDraft,
         id: cleanDraft.id || crypto.randomUUID(),
-        name: description,
+        name: worldName.trim() || description.slice(0, 30),
         scale,
         onboarding_complete: false,
         created_at: new Date().toISOString(),
@@ -78,6 +79,16 @@ export default function CreateWorldPage() {
             <p className="text-sm text-ink/50 mb-6 leading-relaxed">
               用自己的语言描述世界的背景、规则或氛围，AI 会帮你整理成完整的世界设定。
             </p>
+            <label className="block mb-5">
+              <span className="text-xs text-ink/40 uppercase tracking-wider block mb-2">世界名称</span>
+              <input
+                type="text"
+                className="w-full bg-white/60 border border-ink/12 rounded-lg focus:border-ink/30 focus:outline-none text-sm p-3"
+                placeholder="为你的世界取一个名字"
+                value={worldName}
+                onChange={(e) => setWorldName(e.target.value)}
+              />
+            </label>
             <label className="block mb-5">
               <span className="text-xs text-ink/40 uppercase tracking-wider block mb-2">世界规模</span>
               <ScaleSelector value={scale} onChange={setScale} />

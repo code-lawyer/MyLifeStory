@@ -5,7 +5,7 @@ import { playerApi } from '../api/player.js';
 import { eventsApi } from '../api/events.js';
 import { scenesApi } from '../api/scenes.js';
 import { useEventStore } from '../stores/eventStore.js';
-import { useWorldStore } from '../stores/worldStore.js';
+
 import { useChatStore } from '../stores/chatStore.js';
 import ChatPane from '../components/chat/ChatPane.jsx';
 import EventProposalCard from '../components/chat/EventProposalCard.jsx';
@@ -19,11 +19,7 @@ import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
 import InitScenesModal from '../components/world/InitScenesModal.jsx';
 import { useSettingsStore } from '../stores/settingsStore.js';
 
-const NARRATIVE_MODES = [
-  { value: 'intimate', label: '亲密' },
-  { value: 'ensemble', label: '群像' },
-  { value: 'epic', label: '史诗' },
-];
+const NARRATIVE_MODE_LABELS = { intimate: '亲密', ensemble: '群像', epic: '史诗' };
 
 export default function WorldPage() {
   const { worldId } = useParams();
@@ -32,7 +28,7 @@ export default function WorldPage() {
   const [player, setPlayer] = useState(null);
   const [scenes, setScenes] = useState(null);
   const [characters, setCharacters] = useState([]);
-  const [activeCharacters, setActiveCharacters] = useState([]);
+  const [selectedCharacterId, setSelectedCharacterId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentScene, setCurrentScene] = useState(null);
   const [showMap, setShowMap] = useState(false);
@@ -41,7 +37,7 @@ export default function WorldPage() {
 
   const { tokenBudget, apiUrl, apiKey, model } = useSettingsStore();
   const apiConfig = useMemo(() => ({ apiUrl, apiKey, model }), [apiUrl, apiKey, model]);
-  const { narrativeMode, setNarrativeMode } = useWorldStore();
+  const narrativeMode = world?.narrative_mode || 'ensemble';
   const {
     pendingProposal, setPendingProposal, clearProposal,
     incrementTurns, setProposing,
@@ -72,7 +68,7 @@ export default function WorldPage() {
       }
       const charList = Array.isArray(chars) ? chars : [];
       setCharacters(charList);
-      setActiveCharacters(charList.map(c => c.id));
+      if (charList.length > 0) setSelectedCharacterId(charList[0].id);
     }).finally(() => setLoading(false));
   }, [worldId]);
 
@@ -144,15 +140,7 @@ export default function WorldPage() {
       {/* Top bar — barely visible */}
       <header className="flex items-center gap-4 px-6 py-2.5 border-b border-ink/8">
         <h1 className="text-sm font-medium flex-1 truncate">{world?.name}</h1>
-        <select
-          className="bg-transparent text-xs text-ink/50 focus:outline-none cursor-pointer"
-          value={narrativeMode}
-          onChange={(e) => setNarrativeMode(e.target.value)}
-        >
-          {NARRATIVE_MODES.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
+        <span className="text-xs text-ink/40">{NARRATIVE_MODE_LABELS[narrativeMode] || '群像'}模式</span>
         <Link to={`/world/${worldId}/archive`} className="text-xs text-ink/40 hover:text-ink/70 transition-colors">
           档案
         </Link>
@@ -171,8 +159,8 @@ export default function WorldPage() {
 
           <CharacterSelector
             characters={characters}
-            active={activeCharacters}
-            onChange={setActiveCharacters}
+            selectedId={selectedCharacterId}
+            onSelect={setSelectedCharacterId}
           />
 
           <div className="flex flex-col gap-0.5 text-xs text-ink/40">
@@ -184,6 +172,13 @@ export default function WorldPage() {
 
         {/* Chat pane */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
+          {selectedCharacterId && (
+            <div className="px-4 py-1.5 border-b border-ink/8 bg-white/40">
+              <p className="text-xs text-ink/50">
+                你正在和 <span className="font-medium text-ink/70">{characters.find(c => c.id === selectedCharacterId)?.name}</span> 对话
+              </p>
+            </div>
+          )}
           <ChatPane
             worldId={worldId}
             worldData={world}
@@ -193,7 +188,7 @@ export default function WorldPage() {
             onTurnComplete={handleTurnComplete}
             tokenBudget={tokenBudget}
             characters={characters}
-            activeCharacters={activeCharacters}
+            activeCharacters={selectedCharacterId ? [selectedCharacterId] : []}
             apiConfig={apiConfig}
           />
           {pendingProposal && (

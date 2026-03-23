@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { useSettingsStore } from '../stores/settingsStore.js';
@@ -11,6 +11,7 @@ export default function WorldListPage() {
   const navigate = useNavigate();
   const { apiKey, apiUrl, model } = useSettingsStore();
   const apiConfigured = !!(apiKey && apiUrl && model);
+  const fileInputRef = useRef(null);
 
   const loadWorlds = useCallback(() => {
     setWorlds(null);
@@ -23,6 +24,38 @@ export default function WorldListPage() {
   useEffect(() => {
     loadWorlds();
   }, [loadWorlds]);
+
+  async function handleExport(e, worldId) {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const bundle = await worldsApi.exportWorld(worldId);
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `world-${bundle.world?.name || worldId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('导出失败');
+    }
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const bundle = JSON.parse(text);
+      if (!bundle.world) { alert('无效的世界卡文件'); return; }
+      await worldsApi.importWorld(bundle);
+      loadWorlds();
+    } catch {
+      alert('导入失败');
+    }
+    e.target.value = '';
+  }
 
   if (error) {
     return (
@@ -47,6 +80,13 @@ export default function WorldListPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-base font-semibold text-ink tracking-wide">世界模拟器</h1>
           <nav className="flex items-center gap-6">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-sm text-ink/60 hover:text-ink/90 transition-colors"
+            >
+              导入世界
+            </button>
+            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
             <Link
               to="/create/world"
               className="text-sm text-ink/60 hover:text-ink/90 transition-colors"
@@ -85,7 +125,7 @@ export default function WorldListPage() {
         {worlds.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <p className="text-base text-ink/40">还没有世界</p>
-            <p className="text-sm text-ink/30 mt-1 mb-6">点击右上角「创建新世界」开始</p>
+            <p className="text-sm text-ink/30 mt-1 mb-6">点击右上角「创建新世界」或「导入世界」开始</p>
             <Link
               to="/create/world"
               className="text-sm text-ink/60 hover:text-ink/90 border border-ink/15 rounded px-4 py-2 transition-colors"
@@ -96,19 +136,26 @@ export default function WorldListPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {worlds.map((world) => (
-              <Link
+              <div
                 key={world.id}
-                to={`/world/${world.id}`}
-                className="block p-5 border border-ink/10 rounded-lg hover:border-ink/25 hover:bg-ink/2 transition-all"
+                className="relative block p-5 border border-ink/10 rounded-lg hover:border-ink/25 hover:bg-ink/2 transition-all"
               >
-                <h2 className="text-sm font-semibold text-ink mb-1">{world.name}</h2>
-                {world.foundation?.background && (
-                  <p className="text-xs text-ink/50 line-clamp-3 leading-relaxed">{world.foundation.background}</p>
-                )}
-                <p className="text-[11px] text-ink/30 mt-3">
-                  {world.created_at ? new Date(world.created_at).toLocaleDateString('zh-CN') : '—'}
-                </p>
-              </Link>
+                <Link to={`/world/${world.id}`} className="block">
+                  <h2 className="text-sm font-semibold text-ink mb-1">{world.name}</h2>
+                  {world.foundation?.background && (
+                    <p className="text-xs text-ink/50 line-clamp-3 leading-relaxed">{world.foundation.background}</p>
+                  )}
+                  <p className="text-[11px] text-ink/30 mt-3">
+                    {world.created_at ? new Date(world.created_at).toLocaleDateString('zh-CN') : '—'}
+                  </p>
+                </Link>
+                <button
+                  onClick={(e) => handleExport(e, world.id)}
+                  className="absolute top-3 right-3 text-[10px] text-ink/30 hover:text-ink/60 transition-colors"
+                >
+                  导出
+                </button>
+              </div>
             ))}
           </div>
         )}

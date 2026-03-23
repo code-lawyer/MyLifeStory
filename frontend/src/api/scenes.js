@@ -8,4 +8,6 @@ export const scenesApi = {
         apiFetch(BASE(worldId), { method: 'POST', body: JSON.stringify(scene) }),
     enterScene: (worldId, sceneId) =>
         apiFetch(`${BASE(worldId)}/${sceneId}/enter`, { method: 'POST', body: JSON.stringify({}) }),
+    delete: (worldId, sceneId) =>
+        apiFetch(`${BASE(worldId)}/${sceneId}`, { method: 'DELETE' }),
 };

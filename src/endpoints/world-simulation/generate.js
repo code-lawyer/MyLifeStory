@@ -76,7 +76,7 @@ router.post('/world', async (req, res) => {
 router.post('/protagonist', async (req, res) => {
     const { protagonistBio, worldContext, apiConfig = {} } = req.body;
     if (!protagonistBio) return res.status(400).json({ error: 'missing_fields' });
-    const worldInfo = worldContext ? `\nWorld context: ${JSON.stringify(worldContext.foundation)}` : '';
+    const worldInfo = worldContext ? `\nWorld context: ${JSON.stringify({ foundation: worldContext.foundation, power_system: worldContext.power_system, current_state: worldContext.current_state })}` : '';
     let raw;
     try { raw = await callLLM([{ role: 'user', content: `Protagonist biography:\n${protagonistBio}${worldInfo}` }], PROTAGONIST_SYSTEM, apiConfig); }
     catch { return res.status(502).json({ error: 'llm_unavailable' }); }
@@ -93,13 +93,14 @@ router.post('/protagonist', async (req, res) => {
 
 // POST /character
 router.post('/character', async (req, res) => {
-    const { description, worldContext, tier, relationship } = req.body;
+    const { description, worldContext, tier, relationship, protagonistBio } = req.body;
     if (!description) return res.status(400).json({ error: 'missing_fields' });
-    const worldInfo = worldContext ? `\nWorld power system: ${JSON.stringify(worldContext.power_system)}` : '';
+    const worldInfo = worldContext ? `\nWorld context: ${JSON.stringify({ foundation: worldContext.foundation, power_system: worldContext.power_system })}` : '';
+    const protaInfo = protagonistBio ? `\nProtagonist bio: ${protagonistBio}` : '';
     const tierHint = tier ? `\nCharacter tier: ${tier}. Adjust detail level accordingly (legendary=very detailed, elite=standard, normal=brief, disposable=minimal).` : '';
     const relHint = relationship ? `\nRelationship to protagonist: ${relationship}` : '';
     const system = CHAR_GEN_SYSTEM + tierHint + relHint;
-    await generate(req, res, system, `Create a character based on this description: ${description}${worldInfo}`);
+    await generate(req, res, system, `Create a character based on this description: ${description}${worldInfo}${protaInfo}`);
 });
 
 // POST /character/refine
@@ -160,10 +161,11 @@ router.post('/bulk-npcs', async (req, res) => {
 
 // POST /scenes (SSE)
 router.post('/scenes', async (req, res) => {
-    const { worldId, worldContext, scale = 'small', apiConfig = {} } = req.body;
+    const { worldId, worldContext, scale = 'small', apiConfig = {}, characters = [] } = req.body;
     if (!worldId || !worldContext) return res.status(400).json({ error: 'missing_fields' });
 
     const total = (SCALE_COUNTS[scale] || SCALE_COUNTS.small).scenes;
+    const charList = characters.map(c => `${c.name} (${c.tier || 'normal'})`).join(', ');
 
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
     res.setTimeout(0);
@@ -172,9 +174,10 @@ router.post('/scenes', async (req, res) => {
     let done = 0;
 
     for (let i = 0; i < total; i++) {
-        const system = SCENE_PROMPT + `\nWorld: ${worldContext.foundation?.background || ''}\nGeography: ${worldContext.foundation?.geography || ''}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
+        const charHint = charList ? `\nAvailable characters: ${charList}\nAssign 2-5 relevant characters to "characters_present" (use their names). Each character should appear in only 1-2 scenes — distribute them across scenes.` : '';
+        const system = SCENE_PROMPT + `\nWorld: ${worldContext.foundation?.background || ''}\nGeography: ${worldContext.foundation?.geography || ''}${charHint}\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
         try {
-            const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. Make it distinct from previous scenes.` }], system, apiConfig);
+            const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. Make it distinct from previous scenes. Previously generated scenes: ${generatedScenes.map(s => s.name).join(', ') || 'none yet'}.` }], system, apiConfig);
             const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
             const scene = JSON.parse(cleaned);
             scene.id = crypto.randomUUID();

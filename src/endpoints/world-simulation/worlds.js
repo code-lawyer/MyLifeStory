@@ -1,5 +1,8 @@
+import crypto from 'node:crypto';
 import express from 'express';
 import { readWorld, writeWorld, listWorlds, deleteWorld } from './storage/worlds.js';
+import { listCharacters, writeCharacter } from './storage/characters.js';
+import { readScenes, writeScenes } from './storage/scenes.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 
 export const router = express.Router();
@@ -42,6 +45,41 @@ router.put('/:worldId', vId, async (req, res) => {
         const data = { ...req.body, id: req.params.worldId };
         await writeWorld(req.user.directories, req.params.worldId, data);
         res.json(data);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
+});
+
+// GET /:worldId/export — export world + characters + scenes as single JSON
+router.get('/:worldId/export', vId, async (req, res) => {
+    try {
+        const world = await readWorld(req.user.directories, req.params.worldId);
+        if (!world) return res.status(404).json({ error: 'world_not_found' });
+        const characters = await listCharacters(req.user.directories, req.params.worldId);
+        const scenesData = await readScenes(req.user.directories, req.params.worldId);
+        const bundle = { _type: 'mylifestory_world', world, characters, scenes: scenesData.scenes || [] };
+        res.setHeader('Content-Disposition', `attachment; filename="world-${encodeURIComponent(world.name || world.id)}.json"`);
+        res.json(bundle);
+    } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
+});
+
+// POST /import — import world bundle, assign new IDs
+router.post('/import', async (req, res) => {
+    try {
+        const { world, characters = [], scenes = [] } = req.body;
+        if (!world || !world.name) return res.status(400).json({ error: 'invalid_bundle' });
+        const newWorldId = crypto.randomUUID();
+        const idMap = {};
+        const newWorld = { ...world, id: newWorldId, imported_at: new Date().toISOString() };
+        await writeWorld(req.user.directories, newWorldId, newWorld);
+        for (const char of characters) {
+            const newCharId = crypto.randomUUID();
+            idMap[char.id] = newCharId;
+            await writeCharacter(req.user.directories, newCharId, { ...char, id: newCharId, world_id: newWorldId });
+        }
+        const newScenes = scenes.map(s => ({ ...s, id: crypto.randomUUID() }));
+        if (newScenes.length > 0) {
+            await writeScenes(req.user.directories, newWorldId, { scenes: newScenes });
+        }
+        res.status(201).json({ worldId: newWorldId, characters: characters.length, scenes: newScenes.length });
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 

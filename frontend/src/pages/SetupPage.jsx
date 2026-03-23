@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { useSettingsStore } from '../stores/settingsStore.js';
+import NarrativeModeStep from '../components/setup/NarrativeModeStep.jsx';
 import ProtagonistBioStep from '../components/setup/ProtagonistBioStep.jsx';
 import CoreNpcStep from '../components/setup/CoreNpcStep.jsx';
 import BulkGenerateStep from '../components/setup/BulkGenerateStep.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 
-const STEP_LABELS = ['主角小传', '核心人物', '生成世界内容'];
+const STEP_LABELS = ['叙事模式', '主角小传', '核心人物', '生成世界内容'];
 
 export default function SetupPage() {
   const { worldId } = useParams();
@@ -16,7 +17,8 @@ export default function SetupPage() {
 
   const [world, setWorld] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState(0); // 0=bio, 1=core npcs, 2=bulk generate
+  const [step, setStep] = useState(0); // 0=mode, 1=bio, 2=core npcs, 3=bulk generate
+  const [narrativeMode, setNarrativeMode] = useState('ensemble');
   const [protagonistBio, setProtagonistBio] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [coreNpcSuggestions, setCoreNpcSuggestions] = useState([]);
@@ -30,7 +32,7 @@ export default function SetupPage() {
 
   async function handleFinish() {
     try {
-      await worldsApi.update(worldId, { ...world, onboarding_complete: true });
+      await worldsApi.update(worldId, { ...world, narrative_mode: narrativeMode, onboarding_complete: true });
     } catch { /* non-blocking */ }
     navigate(`/world/${worldId}`, { replace: true });
   }
@@ -60,6 +62,13 @@ export default function SetupPage() {
 
       <main className="max-w-4xl mx-auto px-10 py-10">
         {step === 0 && (
+          <NarrativeModeStep
+            value={narrativeMode}
+            onChange={setNarrativeMode}
+            onComplete={() => setStep(1)}
+          />
+        )}
+        {step === 1 && (
           <ProtagonistBioStep
             bio={protagonistBio}
             onBioChange={setProtagonistBio}
@@ -70,11 +79,11 @@ export default function SetupPage() {
             apiConfig={getApiConfig()}
             onComplete={(suggestions) => {
               setCoreNpcSuggestions(suggestions);
-              setStep(1);
+              setStep(2);
             }}
           />
         )}
-        {step === 1 && (
+        {step === 2 && (
           <CoreNpcStep
             suggestions={coreNpcSuggestions}
             worldId={worldId}
@@ -84,11 +93,11 @@ export default function SetupPage() {
             apiConfig={getApiConfig()}
             onComplete={(npcs) => {
               setCreatedCoreNpcs(npcs);
-              setStep(2);
+              setStep(3);
             }}
           />
         )}
-        {step === 2 && (
+        {step === 3 && (
           <BulkGenerateStep
             worldId={worldId}
             worldContext={world}
