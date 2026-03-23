@@ -6,21 +6,33 @@ export default function ProtagonistBioStep({
   bio, onBioChange, playerName, onPlayerNameChange,
   worldContext, apiConfig, onComplete, worldId,
 }) {
-  const [loading, setLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState(null);
   const [error, setError] = useState(null);
 
   async function handleSubmit() {
     if (!bio.trim() || !playerName.trim()) return;
-    setLoading(true);
+    setLoadingPhase('protagonist');
     setError(null);
     try {
       const result = await generateApi.protagonist(bio, worldContext, apiConfig);
-      const suggestions = result.core_npcs || [];
-      onComplete(suggestions);
+      const protagonistNpcs = result.core_npcs || [];
+
+      let worldNpcs = [];
+      if (protagonistNpcs.length > 0) {
+        setLoadingPhase('world');
+        try {
+          const worldResult = await generateApi.worldNpcs(worldContext, bio, protagonistNpcs.length, apiConfig);
+          worldNpcs = worldResult.world_npcs || [];
+        } catch {
+          console.warn('World NPC generation failed, continuing with protagonist NPCs only');
+        }
+      }
+
+      onComplete({ protagonistNpcs, worldNpcs });
     } catch {
       setError('分析小传失败，请重试');
     } finally {
-      setLoading(false);
+      setLoadingPhase(null);
     }
   }
 
@@ -54,8 +66,8 @@ export default function ProtagonistBioStep({
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
-      <Button onClick={handleSubmit} disabled={loading || !bio.trim() || !playerName.trim()}>
-        {loading ? '分析中…' : '提取核心人物'}
+      <Button onClick={handleSubmit} disabled={!!loadingPhase || !bio.trim() || !playerName.trim()}>
+        {loadingPhase ? (loadingPhase === 'protagonist' ? '正在分析主角小传…' : '正在生成世界人物…') : '提取核心人物'}
       </Button>
     </div>
   );
