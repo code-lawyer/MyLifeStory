@@ -16,6 +16,11 @@
 
 **位置：** `src/endpoints/world-simulation/worlds.js`（追加到文件末尾，复用已有的 `callLLM` import 和 `vId` 中间件）
 
+**注意：** `worlds.js` 当前只导入了 `listCharacters` 和 `writeCharacter`，需要将 `readCharacter` 也加入导入：
+```js
+import { listCharacters, readCharacter, writeCharacter } from './storage/characters.js';
+```
+
 **请求体：**
 ```json
 {
@@ -27,7 +32,7 @@
 
 **流程：**
 1. 校验 `event.title` 存在，`activeCharacterIds` 为非空数组，否则返回 `400 missing_fields`
-2. 取交集：`targetIds = event.affected_characters.filter(id => activeCharacterIds.includes(id))`
+2. 取交集：`const affected = Array.isArray(event.affected_characters) ? event.affected_characters : []`；`targetIds = affected.filter(id => activeCharacterIds.includes(id))`；对每个 ID 执行 `/^[\w-]{1,64}$/.test(id)` 过滤，跳过非法 ID
 3. 若交集为空，返回 `{ updated: [] }`（无需调用 LLM）
 4. 对每个 `targetId` 并行执行：
    a. 读取角色文件；若不存在则跳过
@@ -82,8 +87,8 @@ worldsApi.npcDrift(worldId, eventDraft, activeCharacterIds, apiConfig)
   .then(({ updated }) => {
     if (!mountedRef.current || updated.length === 0) return;
     setCharacters(prev => prev.map(c => {
-      const u = updated.find(u => u.id === c.id);
-      return u ? { ...c, current_state: u.current_state } : c;
+      const upd = updated.find(u => u.id === c.id);
+      return upd ? { ...c, current_state: upd.current_state } : c;
     }));
   })
   .catch((err) => console.warn('[WorldPage] npc-drift failed:', err.message));
