@@ -22,6 +22,7 @@ export default function WorldArchivePage() {
   const { worldId } = useParams();
   const [world, setWorld] = useState(null);
   const [events, setEvents] = useState([]);
+  const [summaries, setSummaries] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [scenes, setScenes] = useState([]);
   const [relationships, setRelationships] = useState({});
@@ -39,6 +40,7 @@ export default function WorldArchivePage() {
     ]).then(([w, e, c, s, rels]) => {
       setWorld(w);
       setEvents(e.events || []);
+      setSummaries(e.summaries || []);
       setCharacters(c);
       setScenes(s.scenes || []);
       setRelationships(rels.relationships || {});
@@ -90,9 +92,23 @@ export default function WorldArchivePage() {
         </div>
 
         {/* Events Tab */}
-        {activeTab === 'events' && (events.length === 0 ? (
-          <p className="text-xs text-ink/30">暂无事件</p>
-        ) : events.map((event) => (
+        {activeTab === 'events' && (<>
+          {summaries.length > 0 && (
+            <div className="mb-6">
+              <p className="text-[10px] text-ink/30 uppercase tracking-wider mb-2">历史摘要</p>
+              <ul className="space-y-2">
+                {summaries.map((s, i) => (
+                  <li key={i} className="text-xs text-ink/50 border-l-2 border-ink/10 pl-3 leading-relaxed">
+                    {s.summary}
+                  </li>
+                ))}
+              </ul>
+              {events.length > 0 && <div className="border-t border-ink/8 mt-4 mb-4" />}
+            </div>
+          )}
+          {events.length === 0 && summaries.length === 0 ? (
+            <p className="text-xs text-ink/30">暂无事件</p>
+          ) : events.map((event) => (
           <div key={event.id} className="py-3 border-b border-ink/8 flex items-start gap-3">
             <div className="flex-1">
               <p className="text-sm font-medium text-ink">
@@ -109,7 +125,8 @@ export default function WorldArchivePage() {
               删除
             </button>
           </div>
-        )))}
+        ))}
+        </>)}
 
         {/* Characters Tab */}
         {activeTab === 'characters' && (characters.length === 0 ? (
