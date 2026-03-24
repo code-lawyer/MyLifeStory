@@ -16,7 +16,7 @@ const FIELD_ROWS = [
     label: 'API Key',
     type: 'password',
     placeholder: 'sk-...',
-    hint: '密钥不会上传至任何服务器，仅存储在本地浏览器',
+    hint: '密钥存储在本地浏览器，仅在调用 AI 时经由后端转发',
     autoComplete: 'new-password',
   },
   {

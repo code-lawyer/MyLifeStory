@@ -25,6 +25,18 @@ export default function WorldListPage() {
     loadWorlds();
   }, [loadWorlds]);
 
+  async function handleDelete(e, world) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`确认删除「${world.name}」？此操作不可恢复。`)) return;
+    try {
+      await worldsApi.delete(world.id);
+      setWorlds((prev) => prev.filter(w => w.id !== world.id));
+    } catch {
+      alert('删除失败');
+    }
+  }
+
   async function handleExport(e, worldId) {
     e.preventDefault();
     e.stopPropagation();
@@ -34,7 +46,8 @@ export default function WorldListPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `world-${bundle.world?.name || worldId}.json`;
+      const safeName = (bundle.world?.name || worldId).replace(/[<>:"/\\|?*]/g, '_').slice(0, 50);
+      a.download = `world-${safeName}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -149,12 +162,22 @@ export default function WorldListPage() {
                     {world.created_at ? new Date(world.created_at).toLocaleDateString('zh-CN') : '—'}
                   </p>
                 </Link>
-                <button
-                  onClick={(e) => handleExport(e, world.id)}
-                  className="absolute top-3 right-3 text-[10px] text-ink/30 hover:text-ink/60 transition-colors"
-                >
-                  导出
-                </button>
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleExport(e, world.id)}
+                    className="text-[10px] text-ink/30 hover:text-ink/60 transition-colors"
+                  >
+                    导出
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDelete(e, world)}
+                    className="text-[10px] text-ink/30 hover:text-red-500 transition-colors"
+                  >
+                    删除
+                  </button>
+                </div>
               </div>
             ))}
           </div>

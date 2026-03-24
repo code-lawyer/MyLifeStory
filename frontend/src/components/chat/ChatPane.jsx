@@ -16,7 +16,7 @@ export default function ChatPane({
 }) {
   const {
     blocks, streaming, ensureBlock, addMessage,
-    updateLastMessage, getAllMessages, setStreaming,
+    updateLastMessage, setStreaming,
   } = useChatStore();
   const [input, setInput] = useState('');
   const bottomRef = useRef(null);
@@ -37,14 +37,16 @@ export default function ChatPane({
     setInput('');
     setStreaming(true);
 
-    const allMessages = getAllMessages();
+    const charMessages = useChatStore.getState().blocks
+      .filter(b => b.characterId === activeCharacterId)
+      .flatMap(b => b.messages);
     const accRef = { current: '' };
     let streamCompleted = false;
 
     try {
       const { systemPrompt, trimmedChatHistory } = await buildContext({
         worldCard: worldData,
-        chatHistory: allMessages,
+        chatHistory: charMessages,
         tokenBudget,
         mode: narrativeMode || 'ensemble',
         playerStatus,
