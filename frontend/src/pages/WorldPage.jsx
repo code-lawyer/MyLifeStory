@@ -127,6 +127,18 @@ export default function WorldPage() {
       .then((narratedWorld) => { if (mountedRef.current) setWorld(narratedWorld); })
       .catch((err) => console.warn('[WorldPage] narrate failed:', err.message));
 
+    // Fire-and-forget: update affected NPC statuses
+    const activeCharacterIds = visibleCharacters.map(c => c.id);
+    worldsApi.npcDrift(worldId, eventDraft, activeCharacterIds, apiConfig)
+      .then(({ updated }) => {
+        if (!mountedRef.current || updated.length === 0) return;
+        setCharacters(prev => prev.map(c => {
+          const upd = updated.find(u => u.id === c.id);
+          return upd ? { ...c, current_state: upd.current_state } : c;
+        }));
+      })
+      .catch((err) => console.warn('[WorldPage] npc-drift failed:', err.message));
+
     // Add event to local state
     const newEvent = { ...eventDraft, confirmed_by_user: true };
     const updatedEvents = [...events, newEvent];

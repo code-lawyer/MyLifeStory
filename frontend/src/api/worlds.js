@@ -26,4 +26,10 @@ export const worldsApi = {
       method: 'POST',
       body: JSON.stringify({ event, apiConfig }),
     }),
+
+  npcDrift: (worldId, event, activeCharacterIds, apiConfig) =>
+    apiFetch(`${BASE}/worlds/${worldId}/npc-drift`, {
+      method: 'POST',
+      body: JSON.stringify({ event, activeCharacterIds, apiConfig }),
+    }),
 };
