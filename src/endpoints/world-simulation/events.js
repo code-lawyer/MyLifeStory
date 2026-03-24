@@ -9,11 +9,14 @@ import { validateIdParams } from './validate-id.js';
 export const router = express.Router();
 const vId = validateIdParams('worldId');
 
-// GET /:worldId — list events
+// GET /:worldId — list events + summaries
 router.get('/:worldId', vId, async (req, res) => {
     try {
-        const data = await readEvents(req.user.directories, req.params.worldId);
-        res.json(data);
+        const [eventData, summaryData] = await Promise.all([
+            readEvents(req.user.directories, req.params.worldId),
+            readSummaries(req.user.directories, req.params.worldId),
+        ]);
+        res.json({ ...eventData, summaries: summaryData.summaries || [] });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'internal_error' });
