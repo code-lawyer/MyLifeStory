@@ -16,6 +16,7 @@ import MapPanel from '../components/panels/MapPanel.jsx';
 import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
 import CharacterProfilePanel from '../components/panels/CharacterProfilePanel.jsx';
+import EventLogPanel from '../components/panels/EventLogPanel.jsx';
 import { entryId } from '../utils/scene-utils.js';
 import Spinner from '../components/ui/Spinner.jsx';
 import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
@@ -40,6 +41,7 @@ export default function WorldPage() {
   const [showMap, setShowMap] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [showEventLog, setShowEventLog] = useState(false);
   const [profileCharacter, setProfileCharacter] = useState(null);
 
   const { tokenBudget, apiUrl, apiKey, model } = useSettingsStore();
@@ -253,6 +255,7 @@ export default function WorldPage() {
             <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowMap(true)}>地图</button>
             <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowProfile(true)}>状态</button>
             <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowInventory(true)}>背包</button>
+            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowEventLog(true)}>事件</button>
           </div>
         </aside>
 
@@ -290,6 +293,7 @@ export default function WorldPage() {
       {showMap && <MapPanel worldId={worldId} scenes={scenes || []} onClose={() => setShowMap(false)} onEnter={handleSceneEnter} />}
       {showProfile && <PlayerProfilePanel worldId={worldId} player={player} onClose={() => setShowProfile(false)} onUpdate={(updated) => setPlayer(updated)} />}
       {showInventory && <InventoryPanel worldId={worldId} inventory={player?.inventory || []} onClose={() => setShowInventory(false)} onUpdate={(inv) => setPlayer((p) => p ? { ...p, inventory: inv } : p)} />}
+      {showEventLog && <EventLogPanel events={events} summaries={summaries} onClose={() => setShowEventLog(false)} />}
       {profileCharacter && (
         <CharacterProfilePanel
           character={profileCharacter}
