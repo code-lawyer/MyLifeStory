@@ -1,6 +1,6 @@
 import { TIER_DOTS } from '../../constants/tiers.js';
 
-export default function CharacterSelector({ characters, selectedId, onSelect, relationships = {} }) {
+export default function CharacterSelector({ characters, selectedId, onSelect, onInfo, relationships = {} }) {
   if (characters.length === 0) return (
     <div>
       <p className="text-[10px] text-ink/30 uppercase tracking-wider mb-2">对话角色</p>
@@ -17,21 +17,32 @@ export default function CharacterSelector({ characters, selectedId, onSelect, re
           const dot = TIER_DOTS[c.tier] || '';
           const fam = relationships[c.id]?.familiarity || 0;
           return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onSelect(isSelected ? null : c.id)}
-              className={`text-left text-xs px-2.5 py-1.5 rounded transition-colors flex items-center justify-between ${
-                isSelected
-                  ? 'bg-ink/10 text-ink font-medium'
-                  : 'text-ink/40 hover:text-ink/60 hover:bg-ink/5'
-              }`}
-            >
-              <span className="truncate">
-                {dot && <span className="mr-1 text-[10px]">{dot}</span>}{c.name}
-              </span>
-              {fam > 0 && <span className="text-[9px] text-ink/25 ml-1 shrink-0">{fam}</span>}
-            </button>
+            <div key={c.id} className="group flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => onSelect(isSelected ? null : c.id)}
+                className={`flex-1 text-left text-xs px-2.5 py-1.5 rounded transition-colors flex items-center justify-between min-w-0 ${
+                  isSelected
+                    ? 'bg-ink/10 text-ink font-medium'
+                    : 'text-ink/40 hover:text-ink/60 hover:bg-ink/5'
+                }`}
+              >
+                <span className="truncate">
+                  {dot && <span className="mr-1 text-[10px]">{dot}</span>}{c.name}
+                </span>
+                {fam > 0 && <span className="text-[9px] text-ink/25 ml-1 shrink-0">{fam}</span>}
+              </button>
+              {onInfo && (
+                <button
+                  type="button"
+                  onClick={() => onInfo(c)}
+                  title="查看角色详情"
+                  className="opacity-0 group-hover:opacity-100 text-[10px] text-ink/25 hover:text-ink/60 transition-all px-1 py-1.5 shrink-0"
+                >
+                  ···
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

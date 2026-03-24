@@ -15,6 +15,7 @@ import { relationshipsApi } from '../api/relationships.js';
 import MapPanel from '../components/panels/MapPanel.jsx';
 import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
+import CharacterProfilePanel from '../components/panels/CharacterProfilePanel.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
 import InitScenesModal from '../components/world/InitScenesModal.jsx';
@@ -36,6 +37,7 @@ export default function WorldPage() {
   const [showMap, setShowMap] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [profileCharacter, setProfileCharacter] = useState(null);
 
   const { tokenBudget, apiUrl, apiKey, model } = useSettingsStore();
   const apiConfig = useMemo(() => ({ apiUrl, apiKey, model }), [apiUrl, apiKey, model]);
@@ -219,6 +221,7 @@ export default function WorldPage() {
             characters={visibleCharacters}
             selectedId={selectedCharacterId}
             onSelect={setSelectedCharacterId}
+            onInfo={(c) => setProfileCharacter(c)}
             relationships={relationships}
           />
 
@@ -261,6 +264,14 @@ export default function WorldPage() {
       {showMap && <MapPanel worldId={worldId} scenes={scenes || []} onClose={() => setShowMap(false)} onEnter={handleSceneEnter} />}
       {showProfile && <PlayerProfilePanel worldId={worldId} player={player} onClose={() => setShowProfile(false)} onUpdate={(updated) => setPlayer(updated)} />}
       {showInventory && <InventoryPanel worldId={worldId} inventory={player?.inventory || []} onClose={() => setShowInventory(false)} onUpdate={(inv) => setPlayer((p) => p ? { ...p, inventory: inv } : p)} />}
+      {profileCharacter && (
+        <CharacterProfilePanel
+          character={profileCharacter}
+          relationship={relationships[profileCharacter.id] || {}}
+          currentScene={currentScene}
+          onClose={() => setProfileCharacter(null)}
+        />
+      )}
       {!loading && !player && (
         <InitPlayerModal worldId={worldId} onCreated={(p) => setPlayer(p)} />
       )}
