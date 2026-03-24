@@ -12,7 +12,7 @@ function downloadBlock(block) {
 export default function ChatPane({
   worldId, worldData, playerStatus, currentScene, narrativeMode,
   onTurnComplete, tokenBudget = 4096, characters = [], activeCharacterId,
-  apiConfig = {},
+  apiConfig = {}, eventLog = [], archivedSummaries = [],
 }) {
   const {
     blocks, streaming, ensureBlock, addMessage,
@@ -55,6 +55,8 @@ export default function ChatPane({
         activeCharacters: [activeCharacterId],
         worldId,
         activeCharacterId,
+        eventLog,
+        archivedSummaries,
       });
 
       addMessage(blockId, { role: 'assistant', content: '' });
