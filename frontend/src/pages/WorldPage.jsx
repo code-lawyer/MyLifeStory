@@ -116,6 +116,24 @@ export default function WorldPage() {
     ]);
     if (freshPlayer) setPlayer(freshPlayer);
     if (freshWorld) setWorld(freshWorld);
+
+    // Add event to local state
+    const newEvent = { ...eventDraft, confirmed_by_user: true };
+    const updatedEvents = [...events, newEvent];
+    setEvents(updatedEvents);
+
+    // Auto-compress when non-major events reach 10
+    const nonMajorCount = updatedEvents.filter(e => e.impact_scope !== 'major').length;
+    if (nonMajorCount >= 10) {
+      try {
+        await eventsApi.compress(worldId, apiConfig);
+        const fresh = await eventsApi.list(worldId).catch(() => ({ events: [], summaries: [] }));
+        setEvents(fresh.events || []);
+        setSummaries(fresh.summaries || []);
+      } catch (err) {
+        console.warn('[WorldPage] auto-compress failed:', err.message);
+      }
+    }
   }
 
   function handleSceneEnter(result) {
