@@ -33,6 +33,8 @@ export default function WorldPage() {
   const [characters, setCharacters] = useState([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState(null);
   const [relationships, setRelationships] = useState({});
+  const [events, setEvents] = useState([]);
+  const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentScene, setCurrentScene] = useState(null);
   const [showMap, setShowMap] = useState(false);
@@ -66,7 +68,8 @@ export default function WorldPage() {
       scenesApi.list(worldId).catch(() => ({ scenes: [] })),
       charactersApi.listByWorld(worldId).catch(() => []),
       relationshipsApi.get(worldId).catch(() => ({ relationships: {} })),
-    ]).then(([w, p, s, chars, rels]) => {
+      eventsApi.list(worldId).catch(() => ({ events: [], summaries: [] })),
+    ]).then(([w, p, s, chars, rels, evts]) => {
       setWorld(w);
       setPlayer(p);
       const sceneList = s.scenes || [];
@@ -77,6 +80,8 @@ export default function WorldPage() {
       const charList = Array.isArray(chars) ? chars : [];
       setCharacters(charList);
       setRelationships(rels.relationships || {});
+      setEvents(evts.events || []);
+      setSummaries(evts.summaries || []);
       if (charList.length > 0) setSelectedCharacterId(charList[0].id);
     }).finally(() => setLoading(false));
   }, [worldId]);
@@ -246,6 +251,8 @@ export default function WorldPage() {
             characters={characters}
             activeCharacterId={selectedCharacterId}
             apiConfig={apiConfig}
+            eventLog={events}
+            archivedSummaries={summaries}
           />
           {pendingProposal && (
             <div className="absolute bottom-16 left-6 right-6">
