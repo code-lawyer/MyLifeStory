@@ -76,7 +76,29 @@ router.post('/build', async (req, res) => {
 
     // Build scene section
     const sceneChars = Math.floor(totalChars * budget.scene);
-    const sceneText = currentScene ? `# Current Location: ${currentScene.name}\n${currentScene.description || ''}` : '';
+    let sceneText = '';
+    if (currentScene) {
+        const lines = [`# Current Location: ${currentScene.name}`, currentScene.description || ''];
+        if (currentScene.purpose) {
+            lines.push(`Purpose: ${currentScene.purpose}`);
+        }
+        const presentEntries = currentScene.characters_present || [];
+        if (presentEntries.length > 0 && characters?.length > 0) {
+            const manifest = presentEntries.map(entry => {
+                const id = typeof entry === 'string' ? entry : entry.id;
+                const role = typeof entry === 'object' ? entry.role : '';
+                const char = characters.find(c => c.id === id);
+                if (!char) return null;
+                const tag = id === activeCharacterId ? '（you）' : '';
+                return role ? `- ${char.name}${tag}: ${role}` : `- ${char.name}${tag}`;
+            }).filter(Boolean).join('\n');
+            if (manifest) {
+                lines.push(`\nCharacters present:\n${manifest}`);
+                lines.push('The above is shared knowledge in this scene. Your responses must be consistent with it.');
+            }
+        }
+        sceneText = lines.filter(Boolean).join('\n');
+    }
 
     // Build player section
     const playerChars = Math.floor(totalChars * budget.player);

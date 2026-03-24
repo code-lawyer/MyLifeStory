@@ -163,9 +163,14 @@ export default function WorldPage() {
     );
   }
 
-  const sceneCharacterIds = currentScene?.characters_present || [];
-  const visibleCharacters = sceneCharacterIds.length > 0
-    ? characters.filter(c => sceneCharacterIds.includes(c.id))
+  const scenePresent = currentScene?.characters_present || [];
+  const sceneCharacterIds = new Set(scenePresent.map(p => typeof p === 'string' ? p : p.id));
+  const visibleCharacters = currentScene
+    ? characters.filter(c => {
+        if (c.home_scene === currentScene.id) return true;
+        if (c.tier === 'legendary' || c.tier === 'elite') return sceneCharacterIds.has(c.id);
+        return false;
+      })
     : characters.filter(c => c.tier === 'legendary' || c.tier === 'elite');
 
   return (
