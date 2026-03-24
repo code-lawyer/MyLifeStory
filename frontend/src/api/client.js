@@ -1,19 +1,11 @@
+import { getCsrfToken } from './csrf.js';
+
 export class ApiError extends Error {
   constructor(status, body) {
     super(body?.error || `HTTP ${status}`);
     this.name = 'ApiError';
     this.status = status;
     this.body = body;
-  }
-}
-
-async function getCsrfToken() {
-  try {
-    const res = await fetch('/csrf-token');
-    const data = await res.json();
-    return data.token === 'disabled' ? null : data.token;
-  } catch {
-    return null;
   }
 }
 

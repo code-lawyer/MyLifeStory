@@ -1,4 +1,7 @@
-// src/endpoints/world-simulation/prompts.js
+export function stripFences(raw) {
+    return raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+}
+
 export const DARK_SIDE_SYSTEM = `You are a narrative designer. Given an NPC's surface personality, create a hidden dark side that contrasts with their public persona.
 Return JSON: {"dark_personality":"","dark_motivation":"","phases":[{"threshold":70,"hint":""},{"threshold":80,"hint":""},{"threshold":90,"hint":""}]}
 Rules:

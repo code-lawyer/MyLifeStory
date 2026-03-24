@@ -16,7 +16,6 @@ export default function CoreNpcStep({
   worldId, worldContext, playerName, protagonistBio,
   protagonistNpcs = [], worldNpcs = [], apiConfig, onComplete,
 }) {
-  // Combine both groups with source tags
   const allSuggestions = [
     ...protagonistNpcs.map(s => ({ ...s, source: 'protagonist' })),
     ...worldNpcs.map(s => ({ ...s, source: 'world' })),
@@ -28,14 +27,12 @@ export default function CoreNpcStep({
   const [saving, setSaving] = useState(false);
   const [createdNpcs, setCreatedNpcs] = useState([]);
   const [error, setError] = useState(null);
-  // Refine state
   const [refiningSection, setRefiningSection] = useState(null);
   const [refineSuggestions, setRefineSuggestions] = useState({});
 
   const current = allSuggestions[currentIndex];
   const isLast = currentIndex >= allSuggestions.length - 1;
 
-  // Determine if we need to show a group header
   const prevSource = currentIndex > 0 ? allSuggestions[currentIndex - 1]?.source : null;
   const showGroupHeader = current && current.source !== prevSource;
 
@@ -52,7 +49,6 @@ export default function CoreNpcStep({
         current.relationship,
         { worldContext, protagonistBio },
       );
-      // Extract refine_suggestions if present
       const { refine_suggestions, ...cleanDraft } = d || {};
       if (refine_suggestions) {
         setRefineSuggestions(refine_suggestions);

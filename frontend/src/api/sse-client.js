@@ -1,14 +1,6 @@
-async function getCsrfToken() {
-  try {
-    const res = await fetch('/csrf-token');
-    const data = await res.json();
-    return data.token === 'disabled' ? null : data.token;
-  } catch {
-    return null;
-  }
-}
+import { getCsrfToken } from './csrf.js';
 
-export async function fetchSSE(url, body, onChunk) {
+export async function fetchSSE(url, body, onChunk, { signal } = {}) {
   const token = await getCsrfToken();
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['x-csrf-token'] = token;
@@ -17,6 +9,7 @@ export async function fetchSSE(url, body, onChunk) {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!response.ok) {

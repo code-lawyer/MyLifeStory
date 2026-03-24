@@ -2,6 +2,7 @@ import express from 'express';
 import { readRelationships, writeRelationships } from './storage/relationships.js';
 import { readCharacter } from './storage/characters.js';
 import { callLLM } from './llm-client.js';
+import { stripFences } from './prompts.js';
 import { validateIdParams } from './validate-id.js';
 
 export const router = express.Router();
@@ -62,7 +63,7 @@ router.post('/:worldId/:charId/evaluate', vIds, async (req, res) => {
     );
 
     let parsed;
-    try { parsed = JSON.parse(raw.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim()); }
+    try { parsed = JSON.parse(stripFences(raw)); }
     catch { return res.status(422).json({ error: 'parse_failed' }); }
 
     const delta = Math.max(1, Math.min(5, parseInt(parsed.delta) || 1));

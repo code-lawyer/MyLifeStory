@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { generateApi } from '../../api/generate.js';
 import { charactersApi } from '../../api/characters.js';
 import { scenesApi } from '../../api/scenes.js';
@@ -11,7 +11,7 @@ const PHASE_HINTS = [
   '正在搭建世界场景…',
 ];
 
-const TIER_LABELS = { legendary: '传奇', elite: '精英', normal: '普通', disposable: '无用' };
+import { TIER_LABELS } from '../../constants/tiers.js';
 
 export default function BulkGenerateStep({ worldId, worldContext, scale, apiConfig, onComplete }) {
   const [phase, setPhase] = useState('idle'); // idle | npcs | scenes | review
@@ -20,12 +20,10 @@ export default function BulkGenerateStep({ worldId, worldContext, scale, apiConf
   const [errors, setErrors] = useState([]);
   const [generatedNpcs, setGeneratedNpcs] = useState([]);
   const [generatedScenes, setGeneratedScenes] = useState([]);
-  const started = useRef(false);
-
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    runGeneration();
+    const ctrl = new AbortController();
+    runGeneration(ctrl.signal);
+    return () => ctrl.abort();
   }, []);
 
   // Rotate hints during generation
@@ -44,7 +42,7 @@ export default function BulkGenerateStep({ worldId, worldContext, scale, apiConf
     return () => clearInterval(timer);
   }, [phase]);
 
-  async function runGeneration() {
+  async function runGeneration(signal) {
     // Phase 1: NPCs
     setPhase('npcs');
     const collectedNpcs = [];
@@ -58,10 +56,13 @@ export default function BulkGenerateStep({ worldId, worldContext, scale, apiConf
           }
         }
         if (event.type === 'error') setErrors((prev) => [...prev, event.message]);
-      });
+      }, { signal });
     } catch (err) {
+      if (signal?.aborted) return;
       setErrors((prev) => [...prev, `NPC 生成失败: ${err.message}`]);
     }
+
+    if (signal?.aborted) return;
 
     // Phase 2: Scenes — pass collected NPCs for character distribution
     setPhase('scenes');
@@ -73,11 +74,13 @@ export default function BulkGenerateStep({ worldId, worldContext, scale, apiConf
           if (event.item) setGeneratedScenes((prev) => [...prev, event.item]);
         }
         if (event.type === 'error') setErrors((prev) => [...prev, event.message]);
-      }, collectedNpcs);
+      }, collectedNpcs, { signal });
     } catch (err) {
+      if (signal?.aborted) return;
       setErrors((prev) => [...prev, `场景生成失败: ${err.message}`]);
     }
 
+    if (signal?.aborted) return;
     setPhase('review');
   }
 

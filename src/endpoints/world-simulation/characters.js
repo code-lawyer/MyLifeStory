@@ -2,7 +2,8 @@ import express from 'express';
 import { readCharacter, writeCharacter, listCharacters, deleteCharacter } from './storage/characters.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 import { callLLM } from './llm-client.js';
-import { DARK_SIDE_SYSTEM } from './prompts.js';
+import { DARK_SIDE_SYSTEM, stripFences } from './prompts.js';
+import { readRelationships, writeRelationships } from './storage/relationships.js';
 
 export const router = express.Router();
 const vId = validateIdParams('charId');
@@ -35,10 +36,6 @@ Return JSON: {"initial_familiarity": <number>}
 Guidelines: Close family=60-80, Best friend/mentor=40-60, Acquaintance=15-30, Stranger met through events=5-15
 IMPORTANT: Respond only with valid JSON.`;
 
-function stripFences(raw) {
-    return raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-}
-
 // POST / — create
 router.post('/', async (req, res) => {
     try {
@@ -49,7 +46,6 @@ router.post('/', async (req, res) => {
         await writeCharacter(req.user.directories, char.id, char);
         res.status(201).json(stripHidden(char));
 
-        // Fire-and-forget: familiarity initialization for core NPCs
         if (char.is_core && char.world_id && protagonistBio) {
           (async () => {
             try {
@@ -61,23 +57,20 @@ router.post('/', async (req, res) => {
               const parsed = JSON.parse(stripFences(raw));
               const familiarity = Math.max(0, Math.min(100, parseInt(parsed.initial_familiarity) || 20));
 
-              const { readRelationships, writeRelationships } = await import('./storage/relationships.js');
               const relData = await readRelationships(req.user.directories, char.world_id);
               relData.relationships[char.id] = { familiarity, last_interaction: new Date().toISOString() };
               await writeRelationships(req.user.directories, char.world_id, relData);
             } catch (err) {
               console.warn('[characters] familiarity init failed, defaulting to 20:', err.message);
               try {
-                const { readRelationships, writeRelationships } = await import('./storage/relationships.js');
                 const relData = await readRelationships(req.user.directories, char.world_id);
                 relData.relationships[char.id] = { familiarity: 20, last_interaction: null };
                 await writeRelationships(req.user.directories, char.world_id, relData);
               } catch { /* give up */ }
             }
-          })();
+          })().catch(() => {});
         }
 
-        // Fire-and-forget: 20% chance of dark-side for core legendary/elite NPCs
         if (char.is_core && (char.tier === 'legendary' || char.tier === 'elite') && Math.random() < 0.2) {
           callLLM(
             [{ role: 'user', content: `NPC: ${char.name}\nDescription: ${char.identity?.description || ''}\nPersonality: ${char.identity?.personality || ''}` }],
