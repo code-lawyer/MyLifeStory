@@ -28,12 +28,16 @@ export default function MapPanel({ worldId, scenes, onClose, onEnter }) {
                   ? 'text-ink/30 cursor-not-allowed'
                   : 'text-ink/70 hover:text-ink hover:bg-ink/5'
               }`}
-              title={scene.is_locked ? scene.unlock_condition : undefined}
               onClick={() => handleEnter(scene)}
               disabled={scene.is_locked}
             >
-              {scene.name}
-              {scene.is_locked && <span className="ml-1 text-xs text-ink/30">(锁定)</span>}
+              <span className="flex items-center gap-1">
+                {scene.is_locked && <span className="text-ink/30">🔒</span>}
+                {scene.name}
+              </span>
+              {scene.is_locked && scene.unlock_condition && (
+                <span className="block text-xs text-ink/30 mt-0.5 pl-5">{scene.unlock_condition}</span>
+              )}
               {enterError === scene.id && <span className="block text-xs text-ink/40 mt-0.5">进入失败</span>}
             </button>
           </li>
