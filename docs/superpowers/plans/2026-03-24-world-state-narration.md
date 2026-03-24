@@ -133,7 +133,7 @@ git commit -m "feat: POST /worlds/:worldId/narrate — auto-update world summary
 - Modify: `frontend/src/api/worlds.js:23`
 - Modify: `frontend/src/pages/WorldPage.jsx`
 
-**Context:** `worldsApi` lives in `frontend/src/api/worlds.js` (lines 5-23). `WorldPage.jsx` imports `useState, useEffect, useCallback, useMemo` from React (line 1) — add `useRef`. `handleEventAccepted` is at lines 102-139 (plain `async function`, not `useCallback`). After the existing `setWorld(freshWorld)` call, add the fire-and-forget narrate trigger.
+**Context:** `worldsApi` lives in `frontend/src/api/worlds.js` (lines 5-23). `WorldPage.jsx` imports `useState, useEffect, useCallback, useMemo` from React (line 1) — add `useRef`. `handleEventAccepted` is at lines 104-139 (plain `async function`, not `useCallback`). The last `useState` declaration is at line 45. After the existing `setWorld(freshWorld)` call, add the fire-and-forget narrate trigger.
 
 - [ ] **Step 1: Add `narrate` method to `worldsApi`**
 
@@ -183,7 +183,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 - [ ] **Step 3: Add `mountedRef` to `WorldPage` component**
 
-Inside the `WorldPage` component body, after the existing `useState` declarations (around line 44), add:
+Inside the `WorldPage` component body, after the existing `useState` declarations (line 45 is the last one), add:
 
 ```js
   const mountedRef = useRef(true);
@@ -210,9 +210,13 @@ git commit -m "feat: trigger world narration after event confirm"
 
 ---
 
-## Task 4: Build verification
+## Task 4: Verify and build
 
-- [ ] **Step 1: Run frontend build**
+- [ ] **Step 1: Verify `buildContext` includes the new summary**
+
+Call `POST /api/world-sim/context/build` with a world object that has `current_state.summary` set. Confirm the returned `systemPrompt` contains `当前世界状态`. You can do this manually via curl or by reading the returned `systemPrompt` in browser DevTools after the next chat send.
+
+- [ ] **Step 2: Run frontend build**
 
 ```bash
 cd frontend && npm run build
@@ -220,9 +224,9 @@ cd frontend && npm run build
 
 Expected: `✓ built in ...` with no errors or warnings about missing imports.
 
-- [ ] **Step 2: Commit if build output files changed**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add -A
-git commit -m "chore: build verification"
+git add docs/superpowers/plans/2026-03-24-world-state-narration.md
+git commit -m "chore: fix plan line refs, add verification step"
 ```
