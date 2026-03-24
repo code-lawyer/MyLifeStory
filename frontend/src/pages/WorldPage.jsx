@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
@@ -43,6 +43,9 @@ export default function WorldPage() {
   const [showInventory, setShowInventory] = useState(false);
   const [showEventLog, setShowEventLog] = useState(false);
   const [profileCharacter, setProfileCharacter] = useState(null);
+
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const { tokenBudget, apiUrl, apiKey, model } = useSettingsStore();
   const apiConfig = useMemo(() => ({ apiUrl, apiKey, model }), [apiUrl, apiKey, model]);
@@ -118,6 +121,11 @@ export default function WorldPage() {
     ]);
     if (freshPlayer) setPlayer(freshPlayer);
     if (freshWorld) setWorld(freshWorld);
+
+    // Fire-and-forget: update world narrative summary
+    worldsApi.narrate(worldId, eventDraft, apiConfig)
+      .then((narratedWorld) => { if (mountedRef.current) setWorld(narratedWorld); })
+      .catch((err) => console.warn('[WorldPage] narrate failed:', err.message));
 
     // Add event to local state
     const newEvent = { ...eventDraft, confirmed_by_user: true };

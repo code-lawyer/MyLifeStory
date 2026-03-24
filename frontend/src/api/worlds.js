@@ -20,4 +20,10 @@ export const worldsApi = {
       method: 'POST',
       body: JSON.stringify({ draft, section, instruction, apiConfig }),
     }),
+
+  narrate: (worldId, event, apiConfig) =>
+    apiFetch(`${BASE}/worlds/${worldId}/narrate`, {
+      method: 'POST',
+      body: JSON.stringify({ event, apiConfig }),
+    }),
 };
