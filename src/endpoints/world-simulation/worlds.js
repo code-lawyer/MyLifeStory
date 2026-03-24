@@ -3,7 +3,7 @@ import express from 'express';
 import _ from 'lodash';
 import sanitize from 'sanitize-filename';
 import { readWorld, writeWorld, listWorlds, deleteWorld } from './storage/worlds.js';
-import { listCharacters, writeCharacter } from './storage/characters.js';
+import { listCharacters, readCharacter, writeCharacter } from './storage/characters.js';
 import { readScenes, writeScenes } from './storage/scenes.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 import { callLLM } from './llm-client.js';
@@ -147,6 +147,71 @@ router.post('/:worldId/narrate', vId, async (req, res) => {
         };
         await writeWorld(req.user.directories, req.params.worldId, updated);
         res.json(updated);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'internal_error' });
+    }
+});
+
+const NPC_DRIFT_SYSTEM = `你是世界叙事者。根据事件和角色当前状态，用1~2句中文更新角色的当前状态描述。只输出状态文本，不要标题、不要解释。`;
+
+const SAFE_ID = /^[\w-]{1,64}$/;
+
+// POST /:worldId/npc-drift — update affected active NPC statuses after an event
+router.post('/:worldId/npc-drift', vId, async (req, res) => {
+    try {
+        const { event, activeCharacterIds, apiConfig = {} } = req.body;
+        if (!event?.title || !Array.isArray(activeCharacterIds) || activeCharacterIds.length === 0) {
+            return res.status(400).json({ error: 'missing_fields' });
+        }
+
+        const affected = Array.isArray(event.affected_characters) ? event.affected_characters : [];
+        const targetIds = affected
+            .filter(id => activeCharacterIds.includes(id))
+            .filter(id => SAFE_ID.test(id));
+
+        if (targetIds.length === 0) return res.json({ updated: [] });
+
+        const results = await Promise.all(targetIds.map(async (charId) => {
+            try {
+                const char = await readCharacter(req.user.directories, charId);
+                if (!char) return null;
+
+                const userMessage = [
+                    `角色：${char.name}`,
+                    `当前状态：${char.current_state?.status || '（正常）'}`,
+                    `性格：${char.identity?.personality || ''}`,
+                    `事件（${event.impact_scope || 'moderate'}）：${event.title} — ${event.description || ''}`,
+                ].join('\n');
+
+                let newStatus;
+                try {
+                    newStatus = (await callLLM([{ role: 'user', content: userMessage }], NPC_DRIFT_SYSTEM, apiConfig)).trim();
+                } catch (err) {
+                    console.warn(`[npc-drift] LLM failed for ${charId}:`, err.message);
+                    return null;
+                }
+
+                if (!newStatus) return null;
+
+                const updated = {
+                    ...char,
+                    current_state: {
+                        ...(char.current_state || {}),
+                        status: newStatus,
+                        last_updated: new Date().toISOString(),
+                    },
+                };
+                await writeCharacter(req.user.directories, charId, updated);
+                const { hidden_traits, ...safe } = updated;
+                return safe;
+            } catch (err) {
+                console.warn(`[npc-drift] failed for ${charId}:`, err.message);
+                return null;
+            }
+        }));
+
+        res.json({ updated: results.filter(Boolean) });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'internal_error' });
