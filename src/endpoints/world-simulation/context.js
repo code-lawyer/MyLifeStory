@@ -54,6 +54,7 @@ router.post('/build', async (req, res) => {
         `# Power System\n${worldCard.power_system?.description || ''}`,
         worldCard.power_system?.tiers?.map(t => `Level ${t.level} (${t.name}): ${t.description}`).join('\n') || '',
         worldCard.power_system?.constraints ? `Constraints: ${worldCard.power_system.constraints}` : '',
+        worldCard.current_state?.summary ? `# 当前世界状态\n${worldCard.current_state.summary}` : '',
     ].filter(Boolean).join('\n\n');
 
     // Build events section
