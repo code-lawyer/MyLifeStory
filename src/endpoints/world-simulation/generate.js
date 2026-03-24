@@ -339,8 +339,7 @@ router.post('/scenes', async (req, res) => {
         existing.scenes = [...(existing.scenes || []), ...generatedScenes];
         await writeScenes(req.user.directories, worldId, existing);
 
-        // Write home_scene back to each character (first scene they appear in)
-        for (const [charId, { sceneId, role }] of Object.entries(firstAssignment)) {
+        await Promise.all(Object.entries(firstAssignment).map(async ([charId, { sceneId, role }]) => {
             try {
                 const char = await readCharacter(req.user.directories, charId);
                 if (char && !char.home_scene) {
@@ -349,7 +348,7 @@ router.post('/scenes', async (req, res) => {
                     await writeCharacter(req.user.directories, charId, char);
                 }
             } catch { /* skip */ }
-        }
+        }));
     }
 
     sseWrite(res, { type: 'done', summary: { scenes: generatedScenes.length }, succeeded, failed: processed - succeeded });

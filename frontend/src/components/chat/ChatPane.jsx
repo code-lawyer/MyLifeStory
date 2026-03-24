@@ -23,7 +23,7 @@ export default function ChatPane({
 
   useEffect(() => {
     if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [blocks]);
+  }, [blocks.length]);
 
   const activeChar = characters.find(c => c.id === activeCharacterId);
 

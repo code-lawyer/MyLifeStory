@@ -1,4 +1,4 @@
-import { getCsrfToken } from './csrf.js';
+import { getCsrfToken, clearCsrfCache } from './csrf.js';
 
 export class ApiError extends Error {
   constructor(status, body) {
@@ -21,6 +21,9 @@ export async function apiFetch(path, options = {}) {
 
   const res = await fetch(path, { ...options, headers });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, body);
+  if (!res.ok) {
+    if (res.status === 403) clearCsrfCache();
+    throw new ApiError(res.status, body);
+  }
   return body;
 }

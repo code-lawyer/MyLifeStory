@@ -4,6 +4,7 @@ import { worldsApi } from '../api/worlds.js';
 import { useSettingsStore } from '../stores/settingsStore.js';
 import Spinner from '../components/ui/Spinner.jsx';
 import Button from '../components/ui/Button.jsx';
+import { triggerDownload } from '../utils/chat-export.js';
 
 export default function WorldListPage() {
   const [worlds, setWorlds] = useState(null);
@@ -42,14 +43,8 @@ export default function WorldListPage() {
     e.stopPropagation();
     try {
       const bundle = await worldsApi.exportWorld(worldId);
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const safeName = (bundle.world?.name || worldId).replace(/[<>:"/\\|?*]/g, '_').slice(0, 50);
-      a.download = `world-${safeName}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      triggerDownload(`world-${safeName}.json`, new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }));
     } catch {
       alert('导出失败');
     }

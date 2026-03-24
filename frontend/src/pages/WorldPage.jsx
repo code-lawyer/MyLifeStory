@@ -16,6 +16,7 @@ import MapPanel from '../components/panels/MapPanel.jsx';
 import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
 import CharacterProfilePanel from '../components/panels/CharacterProfilePanel.jsx';
+import { entryId } from '../utils/scene-utils.js';
 import Spinner from '../components/ui/Spinner.jsx';
 import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
 import InitScenesModal from '../components/world/InitScenesModal.jsx';
@@ -166,7 +167,7 @@ export default function WorldPage() {
   }
 
   const scenePresent = currentScene?.characters_present || [];
-  const sceneCharacterIds = new Set(scenePresent.map(p => typeof p === 'string' ? p : p.id));
+  const sceneCharacterIds = new Set(scenePresent.map(entryId));
   const visibleCharacters = currentScene
     ? characters.filter(c => {
         if (c.home_scene === currentScene.id) return true;
@@ -221,7 +222,7 @@ export default function WorldPage() {
             characters={visibleCharacters}
             selectedId={selectedCharacterId}
             onSelect={setSelectedCharacterId}
-            onInfo={(c) => setProfileCharacter(c)}
+            onInfo={setProfileCharacter}
             relationships={relationships}
           />
 

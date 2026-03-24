@@ -84,10 +84,11 @@ router.post('/build', async (req, res) => {
         }
         const presentEntries = currentScene.characters_present || [];
         if (presentEntries.length > 0 && characters?.length > 0) {
+            const charMap = new Map(characters.map(c => [c.id, c]));
             const manifest = presentEntries.map(entry => {
                 const id = typeof entry === 'string' ? entry : entry.id;
                 const role = typeof entry === 'object' ? entry.role : '';
-                const char = characters.find(c => c.id === id);
+                const char = charMap.get(id);
                 if (!char) return null;
                 const tag = id === activeCharacterId ? '（you）' : '';
                 return role ? `- ${char.name}${tag}: ${role}` : `- ${char.name}${tag}`;
