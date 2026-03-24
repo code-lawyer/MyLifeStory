@@ -12,6 +12,20 @@
 
 ## Components
 
+### 后端：`context.js` — 将 `current_state.summary` 注入世界背景段
+
+`worldBaseText` 构建时，在现有字段后追加：
+
+```js
+worldCard.current_state?.summary
+  ? `# 当前世界状态\n${worldCard.current_state.summary}`
+  : '',
+```
+
+这样每次 `buildContext` 调用时，最新叙事摘要都会出现在系统提示的世界背景段中。
+
+---
+
 ### 后端：`POST /api/world-sim/worlds/:worldId/narrate`
 
 **位置：** `src/endpoints/world-simulation/worlds.js`
@@ -25,11 +39,12 @@
 ```
 
 **流程：**
-1. 校验 `event.title` 存在
-2. 读取当前世界文件，取 `foundation.background`（世界背景）与 `current_state.summary`（当前摘要）
-3. 构造提示词（见下），调用 LLM
-4. 将返回的新摘要写回 `world.current_state.summary`，同时更新 `world.current_state.last_updated`（ISO 时间戳）
-5. 存盘，返回完整更新后的世界对象
+1. 校验 `event.title` 存在，否则返回 `400 missing_fields`
+2. 读取当前世界文件；若不存在返回 `404 world_not_found`
+3. 取 `foundation.background` 与 `current_state.summary`，构造提示词（见下），调用 LLM
+4. 对返回结果执行 `.trim()`；若结果为空字符串，跳过写入直接返回原世界对象（不报错）
+5. 将新摘要写回 `world.current_state.summary`，更新 `world.current_state.last_updated`（ISO 时间戳）
+6. 存盘，返回完整更新后的世界对象
 
 **LLM 系统提示词：**
 ```
@@ -47,8 +62,10 @@
 ```
 
 **错误处理：**
-- LLM 不可用 → `502 llm_unavailable`
 - 事件字段缺失 → `400 missing_fields`
+- 世界不存在 → `404 world_not_found`
+- LLM 不可用 → `502 llm_unavailable`
+- LLM 返回空字符串 → 跳过写入，返回原世界对象（不报错）
 - 存储失败 → `500 internal_error`
 
 ### 前端：`worldsApi.narrate()`
@@ -67,11 +84,16 @@ narrate: (worldId, event, apiConfig) =>
 
 **位置：** `frontend/src/pages/WorldPage.jsx`
 
-在现有 `setWorld(freshWorld)` 之后追加（fire-and-forget）：
+在现有 `setWorld(freshWorld)` 之后追加（fire-and-forget，含 mounted ref 保护）：
 
 ```js
+// handleEventAccepted 所在组件顶部：
+const mountedRef = useRef(true);
+useEffect(() => () => { mountedRef.current = false; }, []);
+
+// handleEventAccepted 内：
 worldsApi.narrate(worldId, eventDraft, apiConfig)
-  .then((narratedWorld) => setWorld(narratedWorld))
+  .then((narratedWorld) => { if (mountedRef.current) setWorld(narratedWorld); })
   .catch((err) => console.warn('[WorldPage] narrate failed:', err.message));
 ```
 
@@ -81,12 +103,15 @@ worldsApi.narrate(worldId, eventDraft, apiConfig)
 用户确认事件
   → eventsApi.confirm()
   → handleEventAccepted: 刷新 player/world
-  → worldsApi.narrate(event)  [fire-and-forget]
+  → worldsApi.narrate(event)  [fire-and-forget, mounted ref 保护]
       → 后端读世界 + 调 LLM
-      → 写回 current_state.summary
+      → .trim() + 非空校验
+      → 写回 current_state.summary + last_updated
       → 返回更新世界
-  → setWorld(narratedWorld)
+  → setWorld(narratedWorld)  [仅在组件仍挂载时执行]
   → 下一次 buildContext 调用包含新摘要
+      → context.js worldBaseText 包含 current_state.summary
+      → 系统提示中可见最新世界状态
 ```
 
 ## Files Modified
@@ -94,8 +119,9 @@ worldsApi.narrate(worldId, eventDraft, apiConfig)
 | 文件 | 变更 |
 |------|------|
 | `src/endpoints/world-simulation/worlds.js` | 新增 `POST /:worldId/narrate` 路由 |
+| `src/endpoints/world-simulation/context.js` | `worldBaseText` 中追加 `current_state.summary` 字段 |
 | `frontend/src/api/worlds.js` | 新增 `narrate` 方法 |
-| `frontend/src/pages/WorldPage.jsx` | `handleEventAccepted` 追加叙事触发 |
+| `frontend/src/pages/WorldPage.jsx` | `handleEventAccepted` 追加叙事触发（含 mounted ref 保护） |
 
 ## Testing
 
