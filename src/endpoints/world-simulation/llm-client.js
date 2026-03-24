@@ -11,6 +11,16 @@ function validateApiUrl(apiUrl) {
         if (!['http:', 'https:'].includes(url.protocol)) {
             throw new Error('apiUrl must use http or https protocol');
         }
+        // Block private/loopback networks in production to prevent SSRF
+        if (process.env.NODE_ENV === 'production') {
+            const h = url.hostname;
+            if (h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '0.0.0.0' ||
+                h.startsWith('10.') || h.startsWith('192.168.') ||
+                h.startsWith('169.254.') ||
+                /^172\.(1[6-9]|2\d|3[01])\./.test(h)) {
+                throw new Error('apiUrl cannot target private networks in production');
+            }
+        }
     } catch (err) {
         if (err.message.startsWith('apiUrl')) throw err;
         throw new Error(`Invalid apiUrl: ${apiUrl}`);
@@ -97,20 +107,28 @@ export async function streamLLM(messages, systemPrompt, apiConfig, onChunk) {
 
     if (!response.ok) throw new Error(`LLM API error: ${response.status}`);
 
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
     let buffer = '';
-    for await (const chunk of response.body) {
-        buffer += chunk.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop(); // keep incomplete line
-        for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const data = line.slice(6).trim();
-            if (data === '[DONE]') return;
-            try {
-                const parsed = JSON.parse(data);
-                const delta = parsed?.choices?.[0]?.delta?.content;
-                if (delta) onChunk(delta);
-            } catch { /* skip malformed lines */ }
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep incomplete line
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') return;
+                try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed?.choices?.[0]?.delta?.content;
+                    if (delta) onChunk(delta);
+                } catch { /* skip malformed lines */ }
+            }
         }
+    } finally {
+        reader.cancel();
     }
 }

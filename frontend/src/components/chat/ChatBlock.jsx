@@ -1,7 +1,8 @@
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 function renderMarkdown(text) {
-  return { __html: marked.parse(text || '') };
+  return { __html: DOMPurify.sanitize(marked.parse(text || '')) };
 }
 
 export default function ChatBlock({ block, isStreaming, onExport }) {
