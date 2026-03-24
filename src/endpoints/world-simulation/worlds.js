@@ -6,6 +6,7 @@ import { readWorld, writeWorld, listWorlds, deleteWorld } from './storage/worlds
 import { listCharacters, writeCharacter } from './storage/characters.js';
 import { readScenes, writeScenes } from './storage/scenes.js';
 import { validateIdParams, isValidId } from './validate-id.js';
+import { callLLM } from './llm-client.js';
 
 export const router = express.Router();
 
@@ -108,4 +109,46 @@ router.delete('/:worldId', vId, async (req, res) => {
         await deleteWorld(req.user.directories, req.params.worldId);
         res.sendStatus(204);
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
+});
+
+const NARRATE_SYSTEM = `你是世界叙事者。根据世界背景、当前状态和最新事件，用2~3句中文重写当前状态摘要。只输出摘要文本，不要标题、不要解释。`;
+
+// POST /:worldId/narrate — update world current_state.summary after an event
+router.post('/:worldId/narrate', vId, async (req, res) => {
+    try {
+        const { event, apiConfig = {} } = req.body;
+        if (!event?.title) return res.status(400).json({ error: 'missing_fields' });
+
+        const world = await readWorld(req.user.directories, req.params.worldId);
+        if (!world) return res.status(404).json({ error: 'world_not_found' });
+
+        const userMessage = [
+            `世界背景：${world.foundation?.background || ''}`,
+            `当前状态：${world.current_state?.summary || '（暂无）'}`,
+            `最新事件（${event.impact_scope || 'moderate'}）：${event.title} — ${event.description || ''}`,
+        ].join('\n\n');
+
+        let newSummary;
+        try {
+            newSummary = (await callLLM([{ role: 'user', content: userMessage }], NARRATE_SYSTEM, apiConfig)).trim();
+        } catch {
+            return res.status(502).json({ error: 'llm_unavailable' });
+        }
+
+        if (!newSummary) return res.json(world);
+
+        const updated = {
+            ...world,
+            current_state: {
+                ...(world.current_state || {}),
+                summary: newSummary,
+                last_updated: new Date().toISOString(),
+            },
+        };
+        await writeWorld(req.user.directories, req.params.worldId, updated);
+        res.json(updated);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'internal_error' });
+    }
 });
