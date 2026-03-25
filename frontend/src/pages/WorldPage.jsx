@@ -139,6 +139,13 @@ export default function WorldPage() {
       })
       .catch((err) => console.warn('[WorldPage] npc-drift failed:', err.message));
 
+    // Fire-and-forget: update player status if event affects player
+    if (eventDraft.affected_characters?.includes('__player__')) {
+      playerApi.drift(worldId, eventDraft, apiConfig)
+        .then(({ player: updatedPlayer }) => { if (mountedRef.current) setPlayer(updatedPlayer); })
+        .catch((err) => console.warn('[WorldPage] player-drift failed:', err.message));
+    }
+
     // Add event to local state
     const newEvent = { ...eventDraft, confirmed_by_user: true };
     const updatedEvents = [...events, newEvent];
