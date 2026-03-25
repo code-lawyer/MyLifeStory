@@ -1,3 +1,4 @@
+import express from 'express';
 import { describe, test, expect, beforeAll, afterAll, afterEach } from '@jest/globals';
 import { startTestServer } from './helpers.js';
 import { setLLMAdapter } from '../../src/endpoints/world-simulation/llm-client.js';
@@ -5,8 +6,12 @@ import { setLLMAdapter } from '../../src/endpoints/world-simulation/llm-client.j
 let server;
 
 beforeAll(async () => {
-    const { router } = await import('../../src/endpoints/world-simulation/generate.js');
-    server = await startTestServer(router, {});
+    const { router: worldRouter } = await import('../../src/endpoints/world-simulation/generate-world.js');
+    const { router: bulkRouter } = await import('../../src/endpoints/world-simulation/generate-bulk.js');
+    const combined = express.Router();
+    combined.use(worldRouter);
+    combined.use(bulkRouter);
+    server = await startTestServer(combined, {});
 });
 
 afterAll(async () => {
