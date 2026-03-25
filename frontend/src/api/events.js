@@ -8,10 +8,10 @@ export const eventsApi = {
         apiFetch(BASE(worldId), { method: 'POST', body: JSON.stringify(event) }),
     delete: (worldId, eventId) =>
         apiFetch(`${BASE(worldId)}/${eventId}`, { method: 'DELETE' }),
-    propose: (worldId, chatHistory, apiConfig) =>
+    propose: (worldId, chatHistory, activeCharacters, apiConfig) =>
         apiFetch(`${BASE(worldId)}/propose`, {
             method: 'POST',
-            body: JSON.stringify({ chatHistory, apiConfig }),
+            body: JSON.stringify({ chatHistory, activeCharacters, apiConfig }),
         }),
     compress: (worldId, apiConfig) =>
         apiFetch(`${BASE(worldId)}/compress`, {

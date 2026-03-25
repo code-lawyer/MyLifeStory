@@ -180,7 +180,8 @@ export default function WorldPage() {
     try {
       const recentMessages = useChatStore.getState().getAllMessages().slice(-10).filter(m => m.content);
       if (recentMessages.length === 0) return;
-      const result = await eventsApi.propose(worldId, recentMessages, apiConfig);
+      const activeCharacters = characters.map(c => ({ id: c.id, name: c.name }));
+      const result = await eventsApi.propose(worldId, recentMessages, activeCharacters, apiConfig);
       if (result.proposal) {
         setPendingProposal(result.proposal);
       }
@@ -208,7 +209,7 @@ export default function WorldPage() {
           .catch((err) => console.warn('[WorldPage] familiarity evaluate failed:', err.message));
       }
     }
-  }, [worldId, selectedCharacterId, incrementTurns, setProposing, setPendingProposal, apiConfig]);
+  }, [worldId, selectedCharacterId, incrementTurns, setProposing, setPendingProposal, apiConfig, characters]);
 
   if (loading) {
     return (
