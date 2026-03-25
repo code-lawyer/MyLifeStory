@@ -48,6 +48,21 @@ export default function WorldPage() {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
+  const checkDarkReveal = useCallback(async (crossedCharIds) => {
+    if (crossedCharIds.length === 0) return;
+    try {
+      const freshRels = await relationshipsApi.get(worldId);
+      if (!mountedRef.current) return;
+      setRelationships(freshRels.relationships || {});
+      for (const charId of crossedCharIds) {
+        const charName = characters.find(c => c.id === charId)?.name || charId;
+        useChatStore.getState().addSystemMessage(`你与${charName}之间的关系出现了某种裂变……`);
+      }
+    } catch (err) {
+      console.warn('[WorldPage] dark reveal re-fetch failed:', err.message);
+    }
+  }, [worldId, characters, setRelationships]);
+
   const scenePresent = currentScene?.characters_present || [];
   const sceneCharacterIds = new Set(scenePresent.map(entryId));
   const visibleCharacters = currentScene
@@ -173,6 +188,11 @@ export default function WorldPage() {
             }
             return next;
           });
+          // Detect dark-side threshold crossings
+          const crossed = updated
+            .filter(({ charId, familiarity }) => (relationships[charId]?.familiarity ?? 0) < 90 && familiarity >= 90)
+            .map(({ charId }) => charId);
+          checkDarkReveal(crossed);
         })
         .catch((err) => console.warn('[WorldPage] relationship event-drift failed:', err.message));
     }
@@ -236,11 +256,16 @@ export default function WorldPage() {
                 last_interaction: new Date().toISOString(),
               },
             }));
+            // Detect dark-side threshold crossing
+            const prevFamiliarity = relationships[selectedCharacterId]?.familiarity ?? 0;
+            if (prevFamiliarity < 90 && evalResult.familiarity >= 90) {
+              checkDarkReveal([selectedCharacterId]);
+            }
           })
           .catch((err) => console.warn('[WorldPage] familiarity evaluate failed:', err.message));
       }
     }
-  }, [worldId, selectedCharacterId, incrementTurns, setProposing, setPendingProposal, apiConfig]);
+  }, [worldId, selectedCharacterId, incrementTurns, setProposing, setPendingProposal, apiConfig, checkDarkReveal]);
 
   if (loading) {
     return (
