@@ -67,7 +67,7 @@ router.post('/:worldId/:charId/evaluate', vIds, async (req, res) => {
     try { parsed = parseLLMJson(raw); }
     catch { return res.status(422).json({ error: 'parse_failed' }); }
 
-    const delta = Math.max(1, Math.min(5, parseInt(parsed.delta) || 1));
+    const delta = Math.max(0, Math.min(5, parseInt(parsed.delta) || 0));
     const newFamiliarity = Math.min(100, currentFamiliarity + delta);
 
     if (!data.relationships) data.relationships = {};

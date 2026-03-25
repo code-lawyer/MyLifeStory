@@ -83,7 +83,7 @@ router.post('/', async (req, res) => {
               char.hidden_traits = ht;
               await writeCharacter(req.user.directories, char.id, char);
             } catch { /* skip */ }
-          }).catch(() => { /* silent */ });
+          }).catch((err) => { console.warn('[characters] dark side generation failed for', char.id, ':', err.message); });
         }
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });

@@ -3,6 +3,7 @@ import { readRelationships } from './storage/relationships.js';
 import { readCharacter } from './storage/characters.js';
 export const router = express.Router();
 
+// All budget fractions must sum to 1.0 per mode.
 const BUDGETS = {
     intimate: { worldBase: 0.08, scene: 0.07, player: 0.05, events: 0.08, characters: 0.22, chat: 0.50 },
     ensemble: { worldBase: 0.08, scene: 0.07, player: 0.05, events: 0.20, characters: 0.25, chat: 0.35 },
