@@ -64,7 +64,11 @@ router.delete('/:worldId/:eventId', validateIdParams('worldId', 'eventId'), asyn
 
 const PROPOSE_SYSTEM = `You are a world narrator. Analyze the provided chat history.
 If a significant world-changing event occurred, respond with JSON:
-{"significant":true,"title":"...","description":"...","impact_scope":"minor|moderate|major","affected_characters":[],"narrative":"叙事化的中文提示，以"冥冥中"开头"}
+{"significant":true,"title":"...","description":"...","impact_scope":"minor|moderate|major","affected_characters":[...],"narrative":"叙事化的中文提示，以"冥冥中"开头"}
+Rules for affected_characters:
+- Use "__player__" if the player character is directly involved in the event.
+- Use character IDs (from the provided character list) for any NPCs directly involved.
+- Leave the array empty if no specific character is involved.
 If nothing significant occurred, respond with JSON: {"significant":false}
 Only respond with JSON, no other text.`;
 
@@ -73,12 +77,18 @@ const COMPRESS_SYSTEM = `You are a world historian. Summarize the provided list 
 // POST /:worldId/propose
 router.post('/:worldId/propose', vId, async (req, res) => {
     try {
-        const { chatHistory, apiConfig = {} } = req.body;
+        const { chatHistory, activeCharacters, apiConfig = {} } = req.body;
         if (!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) {
             return res.status(400).json({ error: 'missing_fields' });
         }
 
-        const messages = [{ role: 'user', content: JSON.stringify(chatHistory) }];
+        const charList = Array.isArray(activeCharacters) && activeCharacters.length > 0
+            ? activeCharacters.map(c => `${c.name} (id: ${c.id})`).join(', ')
+            : null;
+        const content = charList
+            ? `Active characters: ${charList}\n\n${JSON.stringify(chatHistory)}`
+            : JSON.stringify(chatHistory);
+        const messages = [{ role: 'user', content }];
         let raw;
         try {
             raw = await callLLM(messages, PROPOSE_SYSTEM, apiConfig);
