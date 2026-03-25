@@ -75,7 +75,7 @@ handleEventAccepted()
 新增 `drift` 方法：
 ```js
 drift: (worldId, event, apiConfig) =>
-  apiFetch(`${BASE}/player/${worldId}/drift`, {
+  apiFetch(`${BASE(worldId)}/drift`, {
     method: 'POST',
     body: JSON.stringify({ event, apiConfig }),
   }),
@@ -88,7 +88,7 @@ drift: (worldId, event, apiConfig) =>
 // Fire-and-forget: update player status if event affects player
 if (eventDraft.affected_characters?.includes('__player__')) {
   playerApi.drift(worldId, eventDraft, apiConfig)
-    .then((updatedPlayer) => { if (mountedRef.current) setPlayer(updatedPlayer); })
+    .then(({ player: updatedPlayer }) => { if (mountedRef.current) setPlayer(updatedPlayer); })
     .catch((err) => console.warn('[WorldPage] player-drift failed:', err.message));
 }
 ```
