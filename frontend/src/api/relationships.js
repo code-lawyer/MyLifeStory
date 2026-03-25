@@ -10,4 +10,10 @@ export const relationshipsApi = {
       method: 'POST',
       body: JSON.stringify({ messages, apiConfig }),
     }),
+
+  eventDrift: (worldId, event, affectedCharIds, apiConfig) =>
+    apiFetch(`${BASE}/${worldId}/event-drift`, {
+      method: 'POST',
+      body: JSON.stringify({ event, affectedCharIds, apiConfig }),
+    }),
 };

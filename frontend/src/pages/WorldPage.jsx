@@ -158,6 +158,25 @@ export default function WorldPage() {
         .catch((err) => console.warn('[WorldPage] player-drift failed:', err.message));
     }
 
+    // Fire-and-forget: update familiarity for affected NPCs
+    const affectedNpcIds = (eventDraft.affected_characters || [])
+      .filter(id => id !== '__player__')
+      .filter(id => visibleCharacters.some(c => c.id === id));
+    if (affectedNpcIds.length > 0) {
+      relationshipsApi.eventDrift(worldId, eventDraft, affectedNpcIds, apiConfig)
+        .then(({ updated }) => {
+          if (!mountedRef.current || updated.length === 0) return;
+          setRelationships(prev => {
+            const next = { ...prev };
+            for (const { charId, familiarity } of updated) {
+              next[charId] = { ...(next[charId] || {}), familiarity, last_interaction: new Date().toISOString() };
+            }
+            return next;
+          });
+        })
+        .catch((err) => console.warn('[WorldPage] relationship event-drift failed:', err.message));
+    }
+
     // Add event to local state
     const newEvent = { ...eventDraft, confirmed_by_user: true };
     const updatedEvents = [...events, newEvent];
