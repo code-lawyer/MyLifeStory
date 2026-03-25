@@ -169,7 +169,7 @@ export default function WorldPage() {
           setRelationships(prev => {
             const next = { ...prev };
             for (const { charId, familiarity } of updated) {
-              next[charId] = { ...(next[charId] || {}), familiarity, last_interaction: new Date().toISOString() };
+              next[charId] = { dark_revealed: false, ...(next[charId] || {}), familiarity, last_interaction: new Date().toISOString() };
             }
             return next;
           });
