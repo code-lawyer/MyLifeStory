@@ -3,7 +3,8 @@ import { readRelationships, writeRelationships } from './storage/relationships.j
 import { readCharacter } from './storage/characters.js';
 import { callLLM } from './llm-client.js';
 import { stripFences } from './prompts.js';
-import { validateIdParams } from './validate-id.js';
+import { fmtEvent } from './format-helpers.js';
+import { validateIdParams, isValidId } from './validate-id.js';
 
 export const router = express.Router();
 const vId = validateIdParams('worldId');
@@ -88,9 +89,8 @@ const EVENT_DRIFT_SYSTEM = `你是关系分析师。根据事件，判断玩家�
 返回JSON：{"delta": N}，N为-5到5的整数。正数表示关系改善，负数表示关系恶化。
 只输出JSON，不要解释。`;
 
-const SAFE_ID_REL = /^[\w-]{1,64}$/;
+const MAX_DRIFT_CHARS = 5;
 
-// POST /:worldId/event-drift — update familiarity for affected chars after an event
 router.post('/:worldId/event-drift', vId, async (req, res) => {
   try {
     const { event, affectedCharIds, apiConfig = {} } = req.body;
@@ -100,21 +100,21 @@ router.post('/:worldId/event-drift', vId, async (req, res) => {
 
     const targetIds = affectedCharIds
       .filter(id => id !== '__player__')
-      .filter(id => SAFE_ID_REL.test(id));
+      .filter(isValidId)
+      .slice(0, MAX_DRIFT_CHARS);
 
     if (targetIds.length === 0) return res.json({ updated: [] });
 
     const dirs = req.user.directories;
     const data = await readRelationships(dirs, req.params.worldId);
 
-    // Run LLM calls in parallel; collect results (null = skipped)
     const results = await Promise.all(targetIds.map(async (charId) => {
       try {
         const currentFamiliarity = data.relationships?.[charId]?.familiarity ?? 0;
         const userMessage = [
           `角色ID：${charId}`,
           `当前熟悉度：${currentFamiliarity}/100`,
-          `事件（${event.impact_scope || 'moderate'}）：${event.title} — ${event.description || ''}`,
+          fmtEvent(event),
         ].join('\n');
 
         const raw = await callLLM([{ role: 'user', content: userMessage }], EVENT_DRIFT_SYSTEM, apiConfig);
@@ -123,14 +123,13 @@ router.post('/:worldId/event-drift', vId, async (req, res) => {
         const newFamiliarity = Math.max(0, Math.min(100, currentFamiliarity + delta));
         return { charId, familiarity: newFamiliarity, delta, prev: data.relationships?.[charId] || {} };
       } catch {
-        return null; // LLM failed or parse failed — skip this char
+        return null;
       }
     }));
 
     const succeeded = results.filter(Boolean);
 
     if (succeeded.length > 0) {
-      // Merge all updates into data synchronously, then write once
       if (!data.relationships) data.relationships = {};
       for (const { charId, familiarity, prev } of succeeded) {
         data.relationships[charId] = { ...prev, familiarity, last_interaction: new Date().toISOString() };
