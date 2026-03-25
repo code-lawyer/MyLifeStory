@@ -2,7 +2,8 @@ import express from 'express';
 import { readCharacter, writeCharacter, listCharacters, deleteCharacter } from './storage/characters.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 import { callLLM } from './llm-client.js';
-import { DARK_SIDE_SYSTEM, stripFences } from './prompts.js';
+import { DARK_SIDE_SYSTEM } from './prompts.js';
+import { parseLLMJson } from './llm-helpers.js';
 import { readRelationships, writeRelationships } from './storage/relationships.js';
 
 export const router = express.Router();
@@ -54,7 +55,7 @@ router.post('/', async (req, res) => {
                 INIT_FAMILIARITY_SYSTEM,
                 apiConfig || {}
               );
-              const parsed = JSON.parse(stripFences(raw));
+              const parsed = parseLLMJson(raw);
               const familiarity = Math.max(0, Math.min(100, parseInt(parsed.initial_familiarity) || 20));
 
               const relData = await readRelationships(req.user.directories, char.world_id);
@@ -78,7 +79,7 @@ router.post('/', async (req, res) => {
             apiConfig || {}
           ).then(async (raw) => {
             try {
-              const ht = JSON.parse(stripFences(raw));
+              const ht = parseLLMJson(raw);
               char.hidden_traits = ht;
               await writeCharacter(req.user.directories, char.id, char);
             } catch { /* skip */ }

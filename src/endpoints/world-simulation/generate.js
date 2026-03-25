@@ -1,7 +1,8 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import { callLLM } from './llm-client.js';
-import { DARK_SIDE_SYSTEM, stripFences } from './prompts.js';
+import { DARK_SIDE_SYSTEM } from './prompts.js';
+import { parseLLMJson } from './llm-helpers.js';
 import { readCharacter, writeCharacter } from './storage/characters.js';
 import { readRelationships, writeRelationships } from './storage/relationships.js';
 
@@ -64,8 +65,8 @@ async function generate(req, res, systemPrompt, userContent) {
     catch { return res.status(502).json({ error: 'llm_unavailable' }); }
 
     let draft;
-    try { draft = JSON.parse(stripFences(raw)); }
-    catch { return res.status(422).json({ error: 'parse_failed', raw }); }
+    try { draft = parseLLMJson(raw); }
+    catch { return res.status(422).json({ error: 'parse_failed' }); }
 
     return res.json({ draft });
 }
@@ -95,8 +96,8 @@ router.post('/protagonist', async (req, res) => {
     catch { return res.status(502).json({ error: 'llm_unavailable' }); }
 
     let result;
-    try { result = JSON.parse(stripFences(raw)); }
-    catch { return res.status(422).json({ error: 'parse_failed', raw }); }
+    try { result = parseLLMJson(raw); }
+    catch { return res.status(422).json({ error: 'parse_failed' }); }
 
     return res.json(result);
 });
@@ -119,8 +120,8 @@ router.post('/world-npcs', async (req, res) => {
     } catch { return res.status(502).json({ error: 'llm_unavailable' }); }
 
     let result;
-    try { result = JSON.parse(stripFences(raw)); }
-    catch { return res.status(422).json({ error: 'parse_failed', raw }); }
+    try { result = parseLLMJson(raw); }
+    catch { return res.status(422).json({ error: 'parse_failed' }); }
 
     return res.json(result);
 });
@@ -140,8 +141,8 @@ router.post('/character/suggest-refine', async (req, res) => {
     } catch { return res.status(502).json({ error: 'llm_unavailable' }); }
 
     let result;
-    try { result = JSON.parse(stripFences(raw)); }
-    catch { return res.status(422).json({ error: 'parse_failed', raw }); }
+    try { result = parseLLMJson(raw); }
+    catch { return res.status(422).json({ error: 'parse_failed' }); }
 
     return res.json(result);
 });
@@ -192,7 +193,7 @@ router.post('/bulk-npcs', async (req, res) => {
         const system = NPC_TIER_PROMPTS[tier] + worldSuffix;
         try {
             const raw = await callLLM([{ role: 'user', content: `Generate one ${tier} NPC for this world.` }], system, apiConfig);
-            const npc = JSON.parse(stripFences(raw));
+            const npc = parseLLMJson(raw);
             npc.id = crypto.randomUUID();
             npc.world_id = worldId;
             npc.tier = tier;
@@ -226,7 +227,7 @@ router.post('/bulk-npcs', async (req, res) => {
             apiConfig
         ).then(async (raw) => {
             try {
-                const ht = JSON.parse(stripFences(raw));
+                const ht = parseLLMJson(raw);
                 npc.hidden_traits = ht;
                 if (req.user?.directories?.characters) {
                     await writeCharacter(req.user.directories, npc.id, npc);
@@ -291,7 +292,7 @@ router.post('/scenes', async (req, res) => {
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             try {
                 const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. DO NOT repeat any of these existing scene names: [${previousList}]. Create a completely different location.` }], sceneSystem, apiConfig);
-                const parsed = JSON.parse(stripFences(raw));
+                const parsed = parseLLMJson(raw);
                 if (usedNames.has(parsed.name?.trim())) continue;
                 scene = parsed;
                 break;

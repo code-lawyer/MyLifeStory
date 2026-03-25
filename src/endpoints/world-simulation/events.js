@@ -3,6 +3,7 @@ import { readEvents, writeEvents, appendEvent, deleteEvent } from './storage/eve
 import { readSummaries, writeSummaries } from './storage/summaries.js';
 import { readScenes, writeScenes } from './storage/scenes.js';
 import { callLLM } from './llm-client.js';
+import { parseLLMJson } from './llm-helpers.js';
 import { randomUUID } from 'node:crypto';
 import { validateIdParams } from './validate-id.js';
 
@@ -97,14 +98,14 @@ router.post('/:worldId/propose', vId, async (req, res) => {
         }
 
         let parsed;
-        try { parsed = JSON.parse(raw); }
-        catch { return res.status(422).json({ error: 'parse_failed', raw }); }
+        try { parsed = parseLLMJson(raw); }
+        catch { return res.status(422).json({ error: 'parse_failed' }); }
 
         if (!parsed.significant) return res.json({ proposal: null });
 
         // Validate required fields from LLM response
         if (!parsed.title || !parsed.description || !parsed.narrative) {
-            return res.status(422).json({ error: 'parse_failed', raw });
+            return res.status(422).json({ error: 'parse_failed' });
         }
 
         const event_draft = {

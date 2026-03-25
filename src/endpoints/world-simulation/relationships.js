@@ -2,7 +2,7 @@ import express from 'express';
 import { readRelationships, writeRelationships } from './storage/relationships.js';
 import { readCharacter } from './storage/characters.js';
 import { callLLM } from './llm-client.js';
-import { stripFences } from './prompts.js';
+import { parseLLMJson } from './llm-helpers.js';
 import { fmtEvent } from './format-helpers.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 
@@ -64,7 +64,7 @@ router.post('/:worldId/:charId/evaluate', vIds, async (req, res) => {
     );
 
     let parsed;
-    try { parsed = JSON.parse(stripFences(raw)); }
+    try { parsed = parseLLMJson(raw); }
     catch { return res.status(422).json({ error: 'parse_failed' }); }
 
     const delta = Math.max(1, Math.min(5, parseInt(parsed.delta) || 1));
@@ -118,7 +118,7 @@ router.post('/:worldId/event-drift', vId, async (req, res) => {
         ].join('\n');
 
         const raw = await callLLM([{ role: 'user', content: userMessage }], EVENT_DRIFT_SYSTEM, apiConfig);
-        const parsed = JSON.parse(stripFences(raw));
+        const parsed = parseLLMJson(raw);
         const delta = Math.max(-5, Math.min(5, parseInt(parsed.delta) || 0));
         const newFamiliarity = Math.max(0, Math.min(100, currentFamiliarity + delta));
         return { charId, familiarity: newFamiliarity, delta, prev: data.relationships?.[charId] || {} };
