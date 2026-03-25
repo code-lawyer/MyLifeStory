@@ -67,7 +67,7 @@ If a significant world-changing event occurred, respond with JSON:
 {"significant":true,"title":"...","description":"...","impact_scope":"minor|moderate|major","affected_characters":[...],"narrative":"叙事化的中文提示，以"冥冥中"开头"}
 Rules for affected_characters:
 - Use "__player__" if the player character is directly involved in the event.
-- Use character IDs (from the provided character list) for any NPCs directly involved.
+- Use character IDs (from the provided character list, format: "Name (id: xxx)") for any NPCs directly involved.
 - Leave the array empty if no specific character is involved.
 If nothing significant occurred, respond with JSON: {"significant":false}
 Only respond with JSON, no other text.`;
