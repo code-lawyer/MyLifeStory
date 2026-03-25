@@ -6,6 +6,14 @@ function renderMarkdown(text) {
 }
 
 export default function ChatBlock({ block, isStreaming, onExport }) {
+  if (block.characterId === '__system__') {
+    return (
+      <div className="px-4 py-2 text-center">
+        <p className="text-xs text-ink/40 italic">{block.messages[0]?.content}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="border border-ink/10 rounded-lg overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 bg-ink/3 border-b border-ink/8">
