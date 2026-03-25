@@ -49,6 +49,7 @@ export default function WorldPage() {
   useEffect(() => () => { mountedRef.current = false; }, []);
 
   const relationshipsRef = useLatestRef(relationships);
+  const charactersRef = useLatestRef(characters);
 
   const checkDarkReveal = useCallback(async (crossedCharIds) => {
     if (crossedCharIds.length === 0) return;
@@ -57,13 +58,13 @@ export default function WorldPage() {
       if (!mountedRef.current) return;
       setRelationships(freshRels.relationships || {});
       for (const charId of crossedCharIds) {
-        const charName = characters.find(c => c.id === charId)?.name || charId;
+        const charName = charactersRef.current.find(c => c.id === charId)?.name || charId;
         useChatStore.getState().addSystemMessage(`你与${charName}之间的关系出现了某种裂变……`);
       }
     } catch (err) {
       console.warn('[WorldPage] dark reveal re-fetch failed:', err.message);
     }
-  }, [worldId, characters]);
+  }, [worldId]);
 
   const scenePresent = currentScene?.characters_present || [];
   const sceneCharacterIds = new Set(scenePresent.map(entryId));
@@ -250,6 +251,8 @@ export default function WorldPage() {
         const recentMsgs = lastBlock.messages.slice(-3);
         relationshipsApi.evaluate(worldId, selectedCharacterId, recentMsgs, apiConfig)
           .then((evalResult) => {
+            // Capture prevFamiliarity before the state write
+            const prevFamiliarity = relationshipsRef.current[selectedCharacterId]?.familiarity ?? 0;
             setRelationships(prev => ({
               ...prev,
               [selectedCharacterId]: {
@@ -258,8 +261,6 @@ export default function WorldPage() {
                 last_interaction: new Date().toISOString(),
               },
             }));
-            // Detect dark-side threshold crossing
-            const prevFamiliarity = relationshipsRef.current[selectedCharacterId]?.familiarity ?? 0;
             if (prevFamiliarity < 90 && evalResult.familiarity >= 90) {
               checkDarkReveal([selectedCharacterId]);
             }
