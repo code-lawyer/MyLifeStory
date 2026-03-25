@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useLatestRef } from '../hooks/useLatestRef.js';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
@@ -47,8 +48,16 @@ export default function WorldPage() {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  const charactersRef = useRef(characters);
-  useEffect(() => { charactersRef.current = characters; }, [characters]);
+  const scenePresent = currentScene?.characters_present || [];
+  const sceneCharacterIds = new Set(scenePresent.map(entryId));
+  const visibleCharacters = currentScene
+    ? characters.filter(c => {
+        if (c.home_scene === currentScene.id) return true;
+        if (c.tier === 'legendary' || c.tier === 'elite') return sceneCharacterIds.has(c.id);
+        return false;
+      })
+    : characters.filter(c => c.tier === 'legendary' || c.tier === 'elite');
+  const visibleCharsRef = useLatestRef(visibleCharacters);
 
   const { tokenBudget, apiUrl, apiKey, model } = useSettingsStore();
   const apiConfig = useMemo(() => ({ apiUrl, apiKey, model }), [apiUrl, apiKey, model]);
@@ -183,7 +192,7 @@ export default function WorldPage() {
     try {
       const recentMessages = useChatStore.getState().getAllMessages().slice(-10).filter(m => m.content);
       if (recentMessages.length === 0) return;
-      const activeCharacters = charactersRef.current.map(c => ({ id: c.id, name: c.name }));
+      const activeCharacters = visibleCharsRef.current.map(c => ({ id: c.id, name: c.name }));
       const result = await eventsApi.propose(worldId, recentMessages, activeCharacters, apiConfig);
       if (result.proposal) {
         setPendingProposal(result.proposal);
@@ -221,16 +230,6 @@ export default function WorldPage() {
       </div>
     );
   }
-
-  const scenePresent = currentScene?.characters_present || [];
-  const sceneCharacterIds = new Set(scenePresent.map(entryId));
-  const visibleCharacters = currentScene
-    ? characters.filter(c => {
-        if (c.home_scene === currentScene.id) return true;
-        if (c.tier === 'legendary' || c.tier === 'elite') return sceneCharacterIds.has(c.id);
-        return false;
-      })
-    : characters.filter(c => c.tier === 'legendary' || c.tier === 'elite');
 
   return (
     <div className="flex flex-col h-screen">

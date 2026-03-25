@@ -7,6 +7,7 @@ import { listCharacters, readCharacter, writeCharacter } from './storage/charact
 import { readScenes, writeScenes } from './storage/scenes.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 import { callLLM } from './llm-client.js';
+import { fmtEvent } from './format-helpers.js';
 
 export const router = express.Router();
 
@@ -125,7 +126,7 @@ router.post('/:worldId/narrate', vId, async (req, res) => {
         const userMessage = [
             `世界背景：${world.foundation?.background || ''}`,
             `当前状态：${world.current_state?.summary || '（暂无）'}`,
-            `最新事件（${event.impact_scope || 'moderate'}）：${event.title} — ${event.description || ''}`,
+            fmtEvent(event, '最新事件'),
         ].join('\n\n');
 
         let newSummary;
@@ -181,7 +182,7 @@ router.post('/:worldId/npc-drift', vId, async (req, res) => {
                     `角色：${char.name}`,
                     `当前状态：${char.current_state?.status || '（正常）'}`,
                     `性格：${char.identity?.personality || ''}`,
-                    `事件（${event.impact_scope || 'moderate'}）：${event.title} — ${event.description || ''}`,
+                    fmtEvent(event),
                 ].join('\n');
 
                 let newStatus;

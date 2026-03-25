@@ -2,6 +2,9 @@ import express from 'express';
 import { readPlayer, writePlayer } from './storage/players.js';
 import { validateIdParams } from './validate-id.js';
 import { callLLM } from './llm-client.js';
+import { fmtEvent } from './format-helpers.js';
+
+const clamp = (v) => Math.max(0, Math.min(100, v));
 
 const PLAYER_DRIFT_SYSTEM = `你是命运裁判。根据事件，用JSON输出玩家三项属性的变化量。格式：{"health":N,"mental":N,"reputation":N}，N为整数。只输出JSON，不要解释。`;
 
@@ -44,7 +47,6 @@ router.patch('/:worldId/status', vId, async (req, res) => {
                 return res.status(400).json({ error: 'invalid_value', field: key });
             }
         }
-        const clamp = (v) => Math.max(0, Math.min(100, v));
         player.status = player.status || {};
         if (health !== undefined) player.status.health = clamp(health);
         if (mental !== undefined) player.status.mental = clamp(mental);
@@ -90,7 +92,7 @@ router.post('/:worldId/drift', vId, async (req, res) => {
         const { health = 0, mental = 0, reputation = 0 } = player.status || {};
         const userMessage = [
             `当前状态：生命值${health}，精神值${mental}，声望${reputation}`,
-            `事件（${event.impact_scope || 'moderate'}）：${event.title} — ${event.description || ''}`,
+            fmtEvent(event),
         ].join('\n');
 
         let delta;
@@ -102,7 +104,6 @@ router.post('/:worldId/drift', vId, async (req, res) => {
             return res.json({ player });
         }
 
-        const clamp = (v) => Math.max(0, Math.min(100, v));
         player.status = {
             ...(player.status || {}),
             health:     clamp(health     + (delta.health     || 0)),
