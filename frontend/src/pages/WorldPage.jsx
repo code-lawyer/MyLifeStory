@@ -48,6 +48,8 @@ export default function WorldPage() {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
+  const relationshipsRef = useLatestRef(relationships);
+
   const checkDarkReveal = useCallback(async (crossedCharIds) => {
     if (crossedCharIds.length === 0) return;
     try {
@@ -61,7 +63,7 @@ export default function WorldPage() {
     } catch (err) {
       console.warn('[WorldPage] dark reveal re-fetch failed:', err.message);
     }
-  }, [worldId, characters, setRelationships]);
+  }, [worldId, characters]);
 
   const scenePresent = currentScene?.characters_present || [];
   const sceneCharacterIds = new Set(scenePresent.map(entryId));
@@ -190,7 +192,7 @@ export default function WorldPage() {
           });
           // Detect dark-side threshold crossings
           const crossed = updated
-            .filter(({ charId, familiarity }) => (relationships[charId]?.familiarity ?? 0) < 90 && familiarity >= 90)
+            .filter(({ charId, familiarity }) => (relationshipsRef.current[charId]?.familiarity ?? 0) < 90 && familiarity >= 90)
             .map(({ charId }) => charId);
           checkDarkReveal(crossed);
         })
@@ -257,7 +259,7 @@ export default function WorldPage() {
               },
             }));
             // Detect dark-side threshold crossing
-            const prevFamiliarity = relationships[selectedCharacterId]?.familiarity ?? 0;
+            const prevFamiliarity = relationshipsRef.current[selectedCharacterId]?.familiarity ?? 0;
             if (prevFamiliarity < 90 && evalResult.familiarity >= 90) {
               checkDarkReveal([selectedCharacterId]);
             }
