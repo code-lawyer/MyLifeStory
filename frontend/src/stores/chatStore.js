@@ -32,6 +32,13 @@ export const useChatStore = create((set, get) => ({
     }));
   },
 
+  addSystemMessage(text) {
+    const id = crypto.randomUUID();
+    set((s) => ({
+      blocks: [...s.blocks, { id, characterId: '__system__', characterName: null, messages: [{ role: 'assistant', content: text }] }],
+    }));
+  },
+
   getAllMessages() {
     return get().blocks.flatMap(b => b.messages);
   },
