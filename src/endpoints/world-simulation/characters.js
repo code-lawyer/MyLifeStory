@@ -80,8 +80,8 @@ router.post('/', async (req, res) => {
           ).then(async (raw) => {
             try {
               const ht = parseLLMJson(raw);
-              char.hidden_traits = ht;
-              await writeCharacter(req.user.directories, char.id, char);
+              const latest = await readCharacter(req.user.directories, char.id);
+              if (latest) await writeCharacter(req.user.directories, char.id, { ...latest, hidden_traits: ht });
             } catch { /* skip */ }
           }).catch((err) => { console.warn('[characters] dark side generation failed for', char.id, ':', err.message); });
         }

@@ -58,15 +58,20 @@ router.post('/:worldId/:charId/evaluate', vIds, async (req, res) => {
     const currentFamiliarity = data.relationships?.[req.params.charId]?.familiarity || 0;
 
     const chatSnippet = messages.map(m => `${m.role}: ${m.content}`).join('\n');
-    const raw = await callLLM(
-      [{ role: 'user', content: `Current familiarity: ${currentFamiliarity}/100\n\nRecent dialogue:\n${chatSnippet}` }],
-      EVALUATE_SYSTEM,
-      apiConfig
-    );
+    let raw;
+    try {
+      raw = await callLLM(
+        [{ role: 'user', content: `Current familiarity: ${currentFamiliarity}/100\n\nRecent dialogue:\n${chatSnippet}` }],
+        EVALUATE_SYSTEM,
+        apiConfig
+      );
+    } catch {
+      return res.json({ familiarity: currentFamiliarity, delta: 0, reason: 'llm_unavailable' });
+    }
 
     let parsed;
     try { parsed = parseLLMJson(raw); }
-    catch { return res.status(422).json({ error: 'parse_failed' }); }
+    catch { return res.json({ familiarity: currentFamiliarity, delta: 0, reason: 'parse_failed' }); }
 
     const delta = Math.max(0, Math.min(5, parseInt(parsed.delta) || 0));
     const newFamiliarity = Math.min(100, currentFamiliarity + delta);
@@ -82,7 +87,7 @@ router.post('/:worldId/:charId/evaluate', vIds, async (req, res) => {
     res.json({ familiarity: newFamiliarity, delta, reason: parsed.reason || '' });
   } catch (err) {
     console.error('[relationships] evaluate failed:', err.message);
-    res.status(502).json({ error: 'evaluate_failed' });
+    res.status(500).json({ error: 'internal_error' });
   }
 });
 

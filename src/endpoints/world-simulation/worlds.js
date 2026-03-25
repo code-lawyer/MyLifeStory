@@ -157,6 +157,7 @@ router.post('/:worldId/narrate', vId, async (req, res) => {
 const NPC_DRIFT_SYSTEM = `你是世界叙事者。根据事件和角色当前状态，用1~2句中文更新角色的当前状态描述。只输出状态文本，不要标题、不要解释。`;
 
 const SAFE_ID = /^[\w-]{1,64}$/;
+const MAX_NPC_DRIFT = 5;
 
 // POST /:worldId/npc-drift — update affected active NPC statuses after an event
 router.post('/:worldId/npc-drift', vId, async (req, res) => {
@@ -169,7 +170,8 @@ router.post('/:worldId/npc-drift', vId, async (req, res) => {
         const affected = Array.isArray(event.affected_characters) ? event.affected_characters : [];
         const targetIds = affected
             .filter(id => activeCharacterIds.includes(id))
-            .filter(id => SAFE_ID.test(id));
+            .filter(id => SAFE_ID.test(id))
+            .slice(0, MAX_NPC_DRIFT);
 
         if (targetIds.length === 0) return res.json({ updated: [] });
 

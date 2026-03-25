@@ -15,7 +15,7 @@ router.get('/:worldId', vId, async (req, res) => {
     try {
         const [eventData, summaryData] = await Promise.all([
             readEvents(req.user.directories, req.params.worldId),
-            readSummaries(req.user.directories, req.params.worldId),
+            readSummaries(req.user.directories, req.params.worldId).catch(() => ({ summaries: [] })),
         ]);
         res.json({ ...eventData, summaries: summaryData.summaries || [] });
     } catch (err) {

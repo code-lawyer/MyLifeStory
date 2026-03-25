@@ -1,0 +1,136 @@
+<h2>引导流程设计方案</h2>
+<p class="subtitle">从创建世界到进入游戏，共有两种流程方案</p>
+
+<div class="section">
+  <div class="split">
+    <div class="mockup" style="flex:1">
+      <div class="mockup-header">方案 A · 线性向导（逐步引导）</div>
+      <div class="mockup-body" style="padding:16px;font-size:13px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="background:#f0f4ff;border:1.5px solid #4f7bff;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span style="background:#4f7bff;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">1</span>
+            <div><strong>选择世界规模</strong><br><span style="color:#666;font-size:11px">小 / 中 / 大 · 显示 token 预估消耗</span></div>
+          </div>
+          <div style="margin-left:18px;width:2px;height:12px;background:#ccc"></div>
+          <div style="background:#f0f4ff;border:1.5px solid #4f7bff;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span style="background:#4f7bff;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">2</span>
+            <div><strong>描述世界 + AI 生成设定</strong><br><span style="color:#666;font-size:11px">现有流程，加入规模参数</span></div>
+          </div>
+          <div style="margin-left:18px;width:2px;height:12px;background:#ccc"></div>
+          <div style="background:#f0f4ff;border:1.5px solid #4f7bff;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span style="background:#4f7bff;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">3</span>
+            <div><strong>写主角小传</strong><br><span style="color:#666;font-size:11px">AI 从中提取需要创建的核心人物列表</span></div>
+          </div>
+          <div style="margin-left:18px;width:2px;height:12px;background:#ccc"></div>
+          <div style="background:#f0f4ff;border:1.5px solid #4f7bff;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span style="background:#4f7bff;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">4</span>
+            <div><strong>逐一创建核心人物</strong><br><span style="color:#666;font-size:11px">AI 建议 → 用户可编辑/跳过，完成后进入下一步</span></div>
+          </div>
+          <div style="margin-left:18px;width:2px;height:12px;background:#ccc"></div>
+          <div style="background:#fff8e1;border:1.5px solid #f0b429;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span style="background:#f0b429;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">5</span>
+            <div><strong>AI 批量生成 NPC + 场景</strong><br><span style="color:#666;font-size:11px">一次性生成全部内容，显示进度条，完成后解锁世界</span></div>
+          </div>
+          <div style="margin-left:18px;width:2px;height:12px;background:#ccc"></div>
+          <div style="background:#e8f5e9;border:1.5px solid #43a047;border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span style="background:#43a047;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">✓</span>
+            <div><strong>进入世界</strong></div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:8px 10px;background:#f5f5f5;border-radius:6px;font-size:11px;color:#666">
+          ✓ 流程清晰，用户不会迷失<br>
+          ✓ 每步可返回修改<br>
+          — 步骤较多，首次体验略长
+        </div>
+      </div>
+    </div>
+
+    <div class="mockup" style="flex:1">
+      <div class="mockup-header">方案 B · 集中式（单页完成）</div>
+      <div class="mockup-body" style="padding:16px;font-size:13px">
+        <div style="border:1.5px solid #ddd;border-radius:8px;overflow:hidden">
+          <div style="background:#2d2d2d;color:#fff;padding:8px 14px;font-size:12px;font-weight:600">创建世界</div>
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:6px">
+              <div style="flex:1;border:1.5px solid #4f7bff;border-radius:6px;padding:8px;text-align:center;font-size:11px"><strong>小世界</strong><br>~1k token</div>
+              <div style="flex:1;border:1.5px dashed #aaa;border-radius:6px;padding:8px;text-align:center;font-size:11px;color:#888">中世界<br>~3k token</div>
+              <div style="flex:1;border:1.5px dashed #aaa;border-radius:6px;padding:8px;text-align:center;font-size:11px;color:#888">大世界<br>~8k token</div>
+            </div>
+            <textarea style="width:100%;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:11px;height:50px;resize:none;box-sizing:border-box" readonly>描述你的世界…</textarea>
+            <textarea style="width:100%;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:11px;height:50px;resize:none;box-sizing:border-box" readonly>主角小传…</textarea>
+            <div style="background:#4f7bff;color:#fff;border-radius:4px;padding:7px;text-align:center;font-size:12px;font-weight:600">AI 一键生成全部内容</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;border:1.5px solid #ddd;border-radius:8px;overflow:hidden">
+          <div style="background:#2d2d2d;color:#fff;padding:8px 14px;font-size:12px;font-weight:600">审查 &amp; 调整（生成后）</div>
+          <div style="padding:10px 14px;font-size:11px;color:#555">
+            世界设定 · 核心人物 · NPC列表 · 场景地图<br>
+            <span style="color:#999">— 可逐项细化，满意后进入世界</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:8px 10px;background:#f5f5f5;border-radius:6px;font-size:11px;color:#666">
+          ✓ 操作最少，快速进入<br>
+          ✓ 一次性看到全貌<br>
+          — 核心人物创建感控制感低，用户参与度低
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3 style="font-size:13px;color:#555;margin-bottom:8px">两方案关键差异</h3>
+  <table style="width:100%;font-size:12px;border-collapse:collapse">
+    <tr style="background:#f5f5f5">
+      <th style="padding:6px 10px;text-align:left;border:1px solid #ddd">维度</th>
+      <th style="padding:6px 10px;text-align:center;border:1px solid #ddd">方案 A（线性）</th>
+      <th style="padding:6px 10px;text-align:center;border:1px solid #ddd">方案 B（集中）</th>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;border:1px solid #ddd">用户参与感</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">★★★★★</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">★★★</td>
+    </tr>
+    <tr style="background:#f9f9f9">
+      <td style="padding:6px 10px;border:1px solid #ddd">操作步骤</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">5 步</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">2 步</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;border:1px solid #ddd">核心人物质量</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">高（逐一打磨）</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">中（批量生成）</td>
+    </tr>
+    <tr style="background:#f9f9f9">
+      <td style="padding:6px 10px;border:1px solid #ddd">首次使用时长</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">较长</td>
+      <td style="padding:6px 10px;text-align:center;border:1px solid #ddd">较短</td>
+    </tr>
+  </table>
+</div>
+
+<p class="subtitle" style="margin-top:16px">我推荐方案 A — 主角小传驱动核心人物创建是这次设计的亮点，方案 A 能让这个环节有足够的仪式感和用户控制感</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>方案 A · 线性向导</h3>
+      <p>5 步引导，逐步完成，每步可返回修改</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>方案 B · 集中式</h3>
+      <p>单次输入 + 一键生成 + 事后审查</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>方案 A/B 混合</h3>
+      <p>前三步集中完成，核心人物单独引导创建</p>
+    </div>
+  </div>
+</div>

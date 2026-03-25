@@ -18,7 +18,7 @@ router.get('/:worldId', vId, async (req, res) => {
         if (!world) return res.status(404).json({ error: 'world_not_found' });
 
         const events = await readEvents(req.user.directories, worldId);
-        const summaries = await readSummaries(req.user.directories, worldId);
+        const summaries = await readSummaries(req.user.directories, worldId).catch(() => ({ summaries: [] }));
         res.json({ current_state: world.current_state, event_count: events.events.length, summaries: summaries.summaries });
     } catch (err) {
         console.error(err);
@@ -39,9 +39,11 @@ router.post('/:worldId/update', vId, async (req, res) => {
         const events = await readEvents(dirs, worldId);
         const summaries = await readSummaries(dirs, worldId);
 
+        const MAX_EVENTS_FOR_LLM = 20;
+        const recentEvents = events.events.slice(-MAX_EVENTS_FOR_LLM);
         const context = [
             ...(summaries.summaries.map(s => ({ role: 'assistant', content: s.summary }))),
-            { role: 'user', content: JSON.stringify(events.events) },
+            { role: 'user', content: JSON.stringify(recentEvents) },
         ];
 
         let newSummary;

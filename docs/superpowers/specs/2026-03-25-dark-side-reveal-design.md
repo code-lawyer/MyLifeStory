@@ -15,7 +15,7 @@ Frontend-only change. No backend modifications required.
 After `evaluate` and `event-drift` resolve, the `.then()` callback:
 1. Detects threshold crossing: `prevFamiliarity < 90 && newFamiliarity >= 90`
 2. If any character crossed: calls `relationshipsApi.get(worldId)` once to replace full `relationships` state
-3. For each newly-revealed character: injects a narrative message into chat via `useChatStore`
+3. For each newly-revealed character: injects a narrative system message into chat
 
 The re-fetch is a single call even when multiple characters unlock simultaneously. It replaces the entire `relationships` state with the authoritative server response.
 
@@ -23,13 +23,25 @@ The re-fetch is a single call even when multiple characters unlock simultaneousl
 
 ### Threshold Detection
 
-In `WorldPage.jsx`, both `evaluate` and `event-drift` `.then()` callbacks:
+**`prevFamiliarity`** comes from the `relationships` closure value captured when the enclosing function was created — which is the pre-call state. This is the correct value to use and no extra instrumentation is needed.
+
+- In `handleEventAccepted` (a plain function, re-created each render): `relationships` in the closure is the value at the time `handleEventAccepted` was called. `prevFamiliarity = relationships[charId]?.familiarity ?? 0`.
+- In `handleTurnComplete` (a `useCallback`): `relationships` is **not** in the dependency array and should remain absent. The stale closure value is exactly the pre-call `prevFamiliarity` we need. Do not add `relationships` to the `useCallback` dep array.
+
+`newFamiliarity` comes from the API response (`updated[i].familiarity` for event-drift, `evalResult.familiarity` for evaluate) — not from state, which hasn't been updated yet at this point in the callback.
 
 ```js
-const darkUnlocked = relationships[charId]?.familiarity < 90 && newFamiliarity >= 90;
-```
+// event-drift path
+for (const { charId, familiarity: newFamiliarity } of updated) {
+  const prevFamiliarity = relationships[charId]?.familiarity ?? 0;
+  if (prevFamiliarity < 90 && newFamiliarity >= 90) { /* unlock */ }
+}
 
-`relationships` is available from the outer component closure. The check is purely local — no new state needed.
+// evaluate path
+const prevFamiliarity = relationships[selectedCharacterId]?.familiarity ?? 0;
+const newFamiliarity = evalResult.familiarity;
+if (prevFamiliarity < 90 && newFamiliarity >= 90) { /* unlock */ }
+```
 
 ### Re-fetch on Unlock
 
@@ -40,46 +52,69 @@ if (mountedRef.current) setRelationships(freshRels.relationships || {});
 
 Called once per unlock event (not per character), even if multiple characters cross the threshold simultaneously.
 
-### Narrative Notification
+### System Message Injection
 
-Injected as a system-style chat entry for each newly-revealed character:
+Add `addSystemMessage(text)` to `chatStore.js`:
 
+```js
+addSystemMessage(text) {
+  const id = crypto.randomUUID();
+  set((s) => ({
+    blocks: [...s.blocks, { id, characterId: '__system__', characterName: null, messages: [{ role: 'assistant', content: text }] }],
+  }));
+},
 ```
-你与[名字]之间的关系出现了某种裂变……
+
+Update `ChatBlock.jsx` to render system blocks without a character header or export button:
+
+```jsx
+if (block.characterId === '__system__') {
+  return (
+    <div className="px-4 py-2 text-center">
+      <p className="text-xs text-ink/40 italic">{block.messages[0]?.content}</p>
+    </div>
+  );
+}
 ```
 
-Uses the character's `name` from `characters` state. Fixed template — no LLM call.
+This guard is placed at the top of the `ChatBlock` function before the normal render path.
 
-Injection mechanism: `useChatStore.getState().addSystemMessage(text)` or equivalent method that appends a non-character message to the active chat.
+Injection call in `WorldPage.jsx`:
+```js
+const charName = characters.find(c => c.id === charId)?.name || charId;
+useChatStore.getState().addSystemMessage(`你与${charName}之间的关系出现了某种裂变……`);
+```
 
 ## Data Flow
 
 ```
 evaluate/event-drift resolves
-  → check: any charId crossed < 90 → >= 90?
-  → if yes:
-      collect newly-revealed charIds
+  → for each updated charId:
+      prevFamiliarity = relationships[charId]?.familiarity ?? 0  (closure value)
+      newFamiliarity = API response value
+      if prevFamiliarity < 90 && newFamiliarity >= 90:
+        collect charId as newly revealed
+  → if any newly revealed:
       call relationshipsApi.get(worldId) once
       setRelationships(freshRels.relationships)
       for each newly-revealed charId:
         find character name from `characters` state
-        inject narrative message into chat
+        useChatStore.getState().addSystemMessage(...)
 ```
 
 ## Affected Files
 
+- **Modify:** `frontend/src/stores/chatStore.js` — add `addSystemMessage(text)` method
+- **Modify:** `frontend/src/components/chat/ChatBlock.jsx` — render system blocks (no header, centered italic)
 - **Modify:** `frontend/src/pages/WorldPage.jsx`
   - Add threshold detection in `evaluate` `.then()` callback (`handleTurnComplete`)
   - Add threshold detection in `event-drift` `.then()` callback (`handleEventAccepted`)
-  - Add re-fetch helper (shared logic for both call sites)
-  - Add narrative message injection
-
-- **Read for context:** `frontend/src/stores/chatStore.js` — understand how to append a system message
+  - Add re-fetch and narrative injection logic (shared across both call sites via helper or inline)
 
 ## Error Handling
 
 - Re-fetch failure: catch and warn, do not block. The optimistic familiarity update is already committed to state.
-- Character name not found: fall back to charId in the notification text.
+- Character name not found: fall back to `charId` in the notification text.
 - `mountedRef.current` guard on all async callbacks (existing pattern).
 
 ## Not In Scope
@@ -88,3 +123,4 @@ evaluate/event-drift resolves
 - Backend changes
 - Retroactive unlock detection on page load (already handled by initial `GET /relationships` fetch)
 - Animation or toast UI for the notification
+- `getAllMessages` in `chatStore.js` filtering out `__system__` blocks — system messages are intentionally excluded from LLM context already since they are appended after the `.then()`, not during a chat turn
