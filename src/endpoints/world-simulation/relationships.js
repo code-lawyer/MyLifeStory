@@ -83,3 +83,64 @@ router.post('/:worldId/:charId/evaluate', vIds, async (req, res) => {
     res.status(502).json({ error: 'evaluate_failed' });
   }
 });
+
+const EVENT_DRIFT_SYSTEM = `你是关系分析师。根据事件，判断玩家与该角色的熟悉度变化。
+返回JSON：{"delta": N}，N为-5到5的整数。正数表示关系改善，负数表示关系恶化。
+只输出JSON，不要解释。`;
+
+const SAFE_ID_REL = /^[\w-]{1,64}$/;
+
+// POST /:worldId/event-drift — update familiarity for affected chars after an event
+router.post('/:worldId/event-drift', vId, async (req, res) => {
+  try {
+    const { event, affectedCharIds, apiConfig = {} } = req.body;
+    if (!event?.title || !Array.isArray(affectedCharIds) || affectedCharIds.length === 0) {
+      return res.status(400).json({ error: 'missing_fields' });
+    }
+
+    const targetIds = affectedCharIds
+      .filter(id => id !== '__player__')
+      .filter(id => SAFE_ID_REL.test(id));
+
+    if (targetIds.length === 0) return res.json({ updated: [] });
+
+    const dirs = req.user.directories;
+    const data = await readRelationships(dirs, req.params.worldId);
+
+    // Run LLM calls in parallel; collect results (null = skipped)
+    const results = await Promise.all(targetIds.map(async (charId) => {
+      try {
+        const currentFamiliarity = data.relationships?.[charId]?.familiarity ?? 0;
+        const userMessage = [
+          `角色ID：${charId}`,
+          `当前熟悉度：${currentFamiliarity}/100`,
+          `事件（${event.impact_scope || 'moderate'}）：${event.title} — ${event.description || ''}`,
+        ].join('\n');
+
+        const raw = await callLLM([{ role: 'user', content: userMessage }], EVENT_DRIFT_SYSTEM, apiConfig);
+        const parsed = JSON.parse(stripFences(raw));
+        const delta = Math.max(-5, Math.min(5, parseInt(parsed.delta) || 0));
+        const newFamiliarity = Math.max(0, Math.min(100, currentFamiliarity + delta));
+        return { charId, familiarity: newFamiliarity, delta, prev: data.relationships?.[charId] || {} };
+      } catch {
+        return null; // LLM failed or parse failed — skip this char
+      }
+    }));
+
+    const succeeded = results.filter(Boolean);
+
+    if (succeeded.length > 0) {
+      // Merge all updates into data synchronously, then write once
+      if (!data.relationships) data.relationships = {};
+      for (const { charId, familiarity, prev } of succeeded) {
+        data.relationships[charId] = { ...prev, familiarity, last_interaction: new Date().toISOString() };
+      }
+      await writeRelationships(dirs, req.params.worldId, data);
+    }
+
+    res.json({ updated: succeeded.map(({ charId, familiarity, delta }) => ({ charId, familiarity, delta })) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'internal_error' });
+  }
+});
