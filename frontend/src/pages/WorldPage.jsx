@@ -224,6 +224,8 @@ export default function WorldPage() {
     setCurrentScene(scene);
     setSelectedCharacterId(null);
     clearBlocks();
+    const sceneNarrative = scene.description ? `「${scene.name}」${scene.description}` : `「${scene.name}」`;
+    useChatStore.getState().addSystemMessage(sceneNarrative);
     setPlayer((prev) => prev ? { ...prev, status: { ...prev.status, current_location: scene.id } } : prev);
   }
 
