@@ -47,6 +47,9 @@ export default function WorldPage() {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
+  const charactersRef = useRef(characters);
+  useEffect(() => { charactersRef.current = characters; }, [characters]);
+
   const { tokenBudget, apiUrl, apiKey, model } = useSettingsStore();
   const apiConfig = useMemo(() => ({ apiUrl, apiKey, model }), [apiUrl, apiKey, model]);
   const narrativeMode = world?.narrative_mode || 'ensemble';
@@ -180,7 +183,7 @@ export default function WorldPage() {
     try {
       const recentMessages = useChatStore.getState().getAllMessages().slice(-10).filter(m => m.content);
       if (recentMessages.length === 0) return;
-      const activeCharacters = characters.map(c => ({ id: c.id, name: c.name }));
+      const activeCharacters = charactersRef.current.map(c => ({ id: c.id, name: c.name }));
       const result = await eventsApi.propose(worldId, recentMessages, activeCharacters, apiConfig);
       if (result.proposal) {
         setPendingProposal(result.proposal);
@@ -196,12 +199,12 @@ export default function WorldPage() {
       if (lastBlock) {
         const recentMsgs = lastBlock.messages.slice(-3);
         relationshipsApi.evaluate(worldId, selectedCharacterId, recentMsgs, apiConfig)
-          .then((result) => {
+          .then((evalResult) => {
             setRelationships(prev => ({
               ...prev,
               [selectedCharacterId]: {
                 ...(prev[selectedCharacterId] || {}),
-                familiarity: result.familiarity,
+                familiarity: evalResult.familiarity,
                 last_interaction: new Date().toISOString(),
               },
             }));
@@ -209,7 +212,7 @@ export default function WorldPage() {
           .catch((err) => console.warn('[WorldPage] familiarity evaluate failed:', err.message));
       }
     }
-  }, [worldId, selectedCharacterId, incrementTurns, setProposing, setPendingProposal, apiConfig, characters]);
+  }, [worldId, selectedCharacterId, incrementTurns, setProposing, setPendingProposal, apiConfig]);
 
   if (loading) {
     return (
