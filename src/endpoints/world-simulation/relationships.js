@@ -11,8 +11,9 @@ const vId = validateIdParams('worldId');
 const vIds = validateIdParams('worldId', 'charId');
 
 const EVALUATE_SYSTEM = `You are a relationship analyst for a narrative world simulation. Given recent dialogue between a player and an NPC, evaluate how much the interaction deepened their relationship.
-Return JSON: {"delta": <1-5>, "reason": "<brief explanation>"}
+Return JSON: {"delta": <0-5>, "reason": "<brief explanation>"}
 Guidelines:
+- No meaningful exchange or purely functional interaction: delta 0
 - Casual greetings or short exchanges: delta 1
 - Sharing personal opinions or experiences: delta 2-3
 - Deep emotional exchanges, secrets shared, conflicts resolved: delta 4-5

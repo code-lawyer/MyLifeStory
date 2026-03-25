@@ -64,7 +64,7 @@ router.post('/bulk-npcs', async (req, res) => {
             npc.is_template = tier === 'disposable';
 
             if (req.user?.directories?.characters) {
-                await writeCharacter(req.user.directories, npc.id, npc);
+                writeCharacter(req.user.directories, npc.id, npc).catch(() => {});
             }
 
             collectedNpcs.push(npc);
@@ -140,7 +140,7 @@ router.post('/scenes', async (req, res) => {
     const worldImportant = `\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
 
     for (let i = 0; i < total; i++) {
-        const previousList = [...usedNames].join('、') || '无';
+        const previousList = [...usedNames].join(', ') || 'none';
 
         // Build available character list for this scene (respect tier limits)
         const availableChars = characters.filter(c =>
@@ -178,6 +178,7 @@ router.post('/scenes', async (req, res) => {
                     const role = typeof entry === 'string' ? '' : (entry.role || '');
                     const char = characters.find(c => c.name === name);
                     if (!char) return null;
+                    if ((assignedCount[char.id] || 0) >= (TIER_SCENE_LIMITS[char.tier] || 1)) return null;
                     assignedCount[char.id] = (assignedCount[char.id] || 0) + 1;
                     return { id: char.id, role };
                 })

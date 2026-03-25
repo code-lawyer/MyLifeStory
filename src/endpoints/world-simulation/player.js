@@ -2,6 +2,7 @@ import express from 'express';
 import { readPlayer, writePlayer } from './storage/players.js';
 import { validateIdParams } from './validate-id.js';
 import { callLLM } from './llm-client.js';
+import { parseLLMJson } from './llm-helpers.js';
 import { fmtEvent } from './format-helpers.js';
 
 const clamp = (v) => Math.max(0, Math.min(100, v));
@@ -98,7 +99,7 @@ router.post('/:worldId/drift', vId, async (req, res) => {
         let delta;
         try {
             const raw = await callLLM([{ role: 'user', content: userMessage }], PLAYER_DRIFT_SYSTEM, apiConfig);
-            delta = JSON.parse(raw);
+            delta = parseLLMJson(raw);
         } catch (err) {
             console.warn('[player-drift] LLM failed or invalid JSON:', err.message);
             return res.json({ player });
