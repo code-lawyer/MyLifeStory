@@ -27,7 +27,11 @@ describe('events CRUD', () => {
     beforeAll(async () => {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ws-events-'));
         fs.mkdirSync(path.join(tmpDir, 'world-events'), { recursive: true });
-        const dirs = { worldEvents: path.join(tmpDir, 'world-events') };
+        fs.mkdirSync(path.join(tmpDir, 'world-summaries'), { recursive: true });
+        const dirs = {
+            worldEvents: path.join(tmpDir, 'world-events'),
+            worldSummaries: path.join(tmpDir, 'world-summaries'),
+        };
         const { router: eventsRouter } = await import('../../src/endpoints/world-simulation/events.js');
         crudServer = await startTestServer(eventsRouter, dirs);
     });
