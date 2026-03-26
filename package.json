@@ -104,33 +104,24 @@
             "whatwg-url": "^14.0.0"
         }
     },
-    "name": "sillytavern",
+    "name": "mylifestory",
     "type": "module",
     "license": "AGPL-3.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SillyTavern/SillyTavern.git"
+        "url": "https://github.com/code-lawyer/MyLifeStory.git"
     },
-    "version": "1.16.0",
+    "version": "1.0.0",
     "scripts": {
         "start": "node server.js",
         "debug": "node --inspect server.js",
-        "start:global": "node server.js --global",
-        "start:electron": "cd ./src/electron && npm run start",
-        "start:deno": "deno run --allow-run --allow-net --allow-read --allow-write --allow-sys --allow-env server.js",
-        "start:bun": "bun server.js",
         "start:no-csrf": "node server.js --disableCsrf",
         "postinstall": "node post-install.js",
-        "lint": "eslint \"src/**/*.js\" \"public/**/*.js\" ./*.js",
-        "lint:fix": "eslint \"src/**/*.js\" \"public/**/*.js\" ./*.js --fix",
-        "plugins:update": "node plugins update",
-        "plugins:install": "node plugins install",
+        "lint": "eslint \"src/**/*.js\" ./*.js",
+        "lint:fix": "eslint \"src/**/*.js\" ./*.js --fix",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/jest.config.json",
         "test:ws": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/jest.config.json --testPathPattern=tests/world-simulation",
         "build:frontend": "cd frontend && npm run build"
-    },
-    "bin": {
-        "sillytavern": "./src/server-global.js"
     },
     "rules": {
         "no-path-concat": "off",

@@ -21,7 +21,6 @@ import './fetch-patch.js';
 import { serverDirectory } from './server-directory.js';
 
 import { serverEvents, EVENT_NAMES } from './server-events.js';
-import { loadPlugins } from './plugin-loader.js';
 import {
     initUserStorage,
     getCookieSecret,
@@ -39,7 +38,6 @@ import {
     loginPageMiddleware,
 } from './users.js';
 
-import getWebpackServeMiddleware from './middleware/webpack-serve.js';
 import basicAuthMiddleware from './middleware/basicAuth.js';
 import getWhitelistMiddleware from './middleware/whitelist.js';
 import accessLoggerMiddleware, { getAccessLogPath, migrateAccessLog } from './middleware/accessLogWriter.js';
@@ -62,14 +60,9 @@ import { UPLOADS_DIRECTORY } from './constants.js';
 
 // Routers
 import { router as usersPublicRouter } from './endpoints/users-public.js';
-import { init as statsInit, onExit as statsOnExit } from './endpoints/stats.js';
-import { checkForNewContent } from './endpoints/content-manager.js';
 import { init as settingsInit } from './endpoints/settings.js';
-import { redirectDeprecatedEndpoints, ServerStartup, setupPrivateEndpoints } from './server-startup.js';
-import { diskCache } from './endpoints/characters.js';
+import { ServerStartup, setupPrivateEndpoints } from './server-startup.js';
 import { migrateFlatSecrets } from './endpoints/secrets.js';
-import { migrateGroupChatsMetadataFormat } from './endpoints/groups.js';
-import { initializeAllUserMetadata } from './endpoints/image-metadata.js';
 
 // Work around a node v20.0.0, v20.1.0, and v20.2.0 bug. The issue was fixed in v20.3.0.
 // https://github.com/nodejs/node/issues/47822#issuecomment-1564708870
@@ -213,23 +206,10 @@ app.get('/', cacheBuster.middleware, (request, response) => {
     return response.sendFile('index.html', { root: path.join(serverDirectory, 'public') });
 });
 
-// Callback endpoint for OAuth PKCE flows (e.g. OpenRouter)
-app.get('/callback/:source?', (request, response) => {
-    const source = request.params.source;
-    const query = request.url.split('?')[1];
-    const searchParams = new URLSearchParams();
-    source && searchParams.set('source', source);
-    query && searchParams.set('query', query);
-    const path = `/?${searchParams.toString()}`;
-    return response.redirect(307, path);
-});
-
 // Host login page
 app.get('/login', loginPageMiddleware);
 
 // Host frontend assets
-const webpackMiddleware = getWebpackServeMiddleware();
-app.use(webpackMiddleware);
 app.use(express.static(path.join(serverDirectory, 'public'), {}));
 
 // Public API
@@ -265,7 +245,6 @@ app.get('/version', async function (_, response) {
     response.send(data);
 });
 
-redirectDeprecatedEndpoints(app);
 setupPrivateEndpoints(app);
 
 // SPA fallback: serve index.html for all non-API, non-file GET requests
@@ -282,62 +261,22 @@ async function preSetupTasks() {
 
     // Print formatted header
     console.log();
-    console.log(`SillyTavern ${version.pkgVersion}`);
+    console.log(`MyLifeStory ${version.pkgVersion}`);
     if (version.gitBranch && version.commitDate) {
         const date = new Date(version.commitDate);
         const localDate = date.toLocaleString('en-US', { timeZoneName: 'short' });
         console.log(`Running '${version.gitBranch}' (${version.gitRevision}) - ${localDate}`);
-        if (!version.isLatest && ['staging', 'release'].includes(version.gitBranch)) {
-            console.log('INFO: Currently not on the latest commit.');
-            console.log('      Run \'git pull\' to update. If you have any merge conflicts, run \'git reset --hard\' and \'git pull\' to reset your branch.');
-        }
     }
     console.log();
 
     const directories = await getUserDirectoriesList();
-    await migrateGroupChatsMetadataFormat(directories);
-    await checkForNewContent(directories);
-    await diskCache.verify(directories);
     migrateFlatSecrets(directories);
     cleanUploads();
     migrateAccessLog();
 
     await settingsInit();
-    await statsInit();
 
-    // Initialize image metadata
-    await initializeAllUserMetadata(directories);
-
-    const pluginsDirectory = path.join(serverDirectory, 'plugins');
-    const cleanupPlugins = await loadPlugins(app, pluginsDirectory);
-    const consoleTitle = process.title;
-
-    let isExiting = false;
-    const exitProcess = async () => {
-        if (isExiting) return;
-        isExiting = true;
-        await statsOnExit();
-        if (typeof cleanupPlugins === 'function') {
-            await cleanupPlugins();
-        }
-        diskCache.dispose();
-        setWindowTitle(consoleTitle);
-        process.exit();
-    };
-
-    // Set up event listeners for a graceful shutdown
-    process.on('SIGINT', exitProcess);
-    process.on('SIGTERM', exitProcess);
-    process.on('uncaughtException', (err) => {
-        console.error('Uncaught exception:', err);
-        exitProcess();
-    });
-
-    // Add request proxy.
     initRequestProxy({ enabled: cliArgs.requestProxyEnabled, url: cliArgs.requestProxyUrl, bypass: cliArgs.requestProxyBypass });
-
-    // Wait for frontend libs to compile
-    await webpackMiddleware.runWebpackCompiler();
 }
 
 /**
@@ -352,7 +291,6 @@ async function postSetupTasks(result) {
 
     if (cliArgs.browserLaunchEnabled) {
         try {
-            // TODO: This should be converted to a regular import when support for Node 18 is dropped
             const openModule = await import('open');
             const { default: open, apps } = openModule;
 
@@ -381,7 +319,6 @@ async function postSetupTasks(result) {
     }
 
     if (cliArgs.heartbeatInterval > 0) {
-        // Convert seconds to milliseconds for the timer
         const intervalMs = cliArgs.heartbeatInterval * 1000;
         const heartbeatPath = path.join(globalThis.DATA_ROOT, 'heartbeat.json');
 
@@ -395,16 +332,13 @@ async function postSetupTasks(result) {
             }
         };
 
-        // Write immediately
         writeHeartbeat();
-
-        // Loop using the converted milliseconds
         setInterval(writeHeartbeat, intervalMs).unref();
     }
 
-    setWindowTitle('SillyTavern WebServer');
+    setWindowTitle('MyLifeStory WebServer');
 
-    let logListen = 'SillyTavern is listening on';
+    let logListen = 'MyLifeStory is listening on';
 
     if (result.useIPv6 && !result.v6Failed) {
         logListen += color.green(
@@ -418,7 +352,7 @@ async function postSetupTasks(result) {
         );
     }
 
-    const goToLog = `Go to: ${color.blue(browserLaunchUrl)} to open SillyTavern`;
+    const goToLog = `Go to: ${color.blue(browserLaunchUrl)} to open MyLifeStory`;
     const plainGoToLog = removeColorFormatting(goToLog);
 
     console.log(logListen);
