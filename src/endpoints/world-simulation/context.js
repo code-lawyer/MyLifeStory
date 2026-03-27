@@ -10,6 +10,8 @@ const BUDGETS = {
     epic:     { worldBase: 0.15, scene: 0.05, player: 0.05, events: 0.30, characters: 0.20, chat: 0.25 },
 };
 
+const PERIOD_LABELS = { morning: '清晨', afternoon: '午后', evening: '傍晚', night: '深夜' };
+
 const CHARS_PER_TOKEN = 4; // rough estimate
 
 function truncate(text, maxChars) {
@@ -55,6 +57,7 @@ router.post('/build', async (req, res) => {
         `# Power System\n${worldCard.power_system?.description || ''}`,
         worldCard.power_system?.tiers?.map(t => `Level ${t.level} (${t.name}): ${t.description}`).join('\n') || '',
         worldCard.power_system?.constraints ? `Constraints: ${worldCard.power_system.constraints}` : '',
+        worldCard.clock ? `# 当前时间\n第${worldCard.clock.day}天 · ${PERIOD_LABELS[worldCard.clock.period] || worldCard.clock.period}` : '',
         worldCard.current_state?.summary ? `# 当前世界状态\n${worldCard.current_state.summary}` : '',
     ].filter(Boolean).join('\n\n');
 

@@ -54,4 +54,20 @@ describe('POST /context/build', () => {
         });
         expect(res.status).toBe(400);
     });
+
+    test('includes clock in system prompt when worldCard has clock', async () => {
+        const payload = {
+            ...BASE_PAYLOAD,
+            worldCard: { ...BASE_PAYLOAD.worldCard, clock: { day: 3, period: 'evening' } },
+        };
+        const res = await fetch(`${server.url}/build`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        expect(res.status).toBe(200);
+        const { systemPrompt } = await res.json();
+        expect(systemPrompt).toContain('第3天');
+        expect(systemPrompt).toContain('傍晚');
+    });
 });
