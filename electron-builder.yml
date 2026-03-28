@@ -1,0 +1,46 @@
+appId: com.mylifestory.app
+productName: MyLifeStory
+copyright: Copyright © 2026
+
+directories:
+  output: dist-electron
+  buildResources: build-resources
+
+files:
+  - electron/**/*
+  - src/**/*
+  - public/**/*
+  - server.js
+  - package.json
+  - package-lock.json
+  - node_modules/**/*
+  - "!node_modules/.cache/**/*"
+  - "!frontend/**/*"
+  - "!tests/**/*"
+  - "!docs/**/*"
+  - "!data/**/*"
+  - "!.git/**/*"
+  - "!.worktrees/**/*"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.games
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: Game
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+publish: null
