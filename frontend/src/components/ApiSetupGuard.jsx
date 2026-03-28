@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useSettingsStore } from '../stores/settingsStore.js';
+import Button from './ui/Button.jsx';
 
 export default function ApiSetupGuard({ children }) {
-  const { apiKey } = useSettingsStore();
+  const apiKey = useSettingsStore(s => s.apiKey);
   const [dismissed, setDismissed] = useState(false);
 
   const needsSetup = !apiKey && !dismissed;
@@ -48,7 +49,7 @@ function ApiSetupOverlay({ onDone }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       save(form);
       setStatus('ok');
-      setTimeout(onDone, 800);
+      setTimeout(onDone, 400);
     } catch (err) {
       setStatus('error');
       setErrorMsg(`连接失败：${err.message}`);
@@ -102,19 +103,14 @@ function ApiSetupOverlay({ onDone }) {
         )}
 
         <div className="flex gap-3 pt-1">
-          <button
+          <Button
             onClick={testAndSave}
             disabled={status === 'testing' || status === 'ok'}
-            className="flex-1 px-4 py-2 text-sm bg-ink text-parchment rounded-lg disabled:opacity-50"
+            className="flex-1"
           >
             {status === 'testing' ? '测试中…' : '测试并保存'}
-          </button>
-          <button
-            onClick={onDone}
-            className="px-4 py-2 text-sm border border-ink/20 rounded-lg text-ink/60 hover:text-ink"
-          >
-            跳过
-          </button>
+          </Button>
+          <Button variant="secondary" onClick={onDone}>跳过</Button>
         </div>
         <p className="text-[11px] text-ink/40 text-center">API Key 仅保存在本机，不会上传。</p>
       </div>
