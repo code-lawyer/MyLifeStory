@@ -33,6 +33,8 @@ export default function WorldPage() {
   const { worldId } = useParams();
   const navigate = useNavigate();
   const [world, setWorld] = useState(null);
+  const [loadError, setLoadError] = useState(false);
+  const [loadRetry, setLoadRetry] = useState(0);
   const [player, setPlayer] = useState(null);
   const [scenes, setScenes] = useState(null);
   const [characters, setCharacters] = useState([]);
@@ -108,6 +110,7 @@ export default function WorldPage() {
       relationshipsApi.get(worldId).catch(() => ({ relationships: {} })),
       eventsApi.list(worldId).catch(() => ({ events: [], summaries: [] })),
     ]).then(([w, p, s, chars, rels, evts]) => {
+      if (!w) { if (mountedRef.current) setLoadError(true); return; }
       setWorld(w);
       setPlayer(p);
       const sceneList = s.scenes || [];
@@ -133,8 +136,10 @@ export default function WorldPage() {
           })
           .catch(() => {});
       }
+    }).catch(() => {
+      if (mountedRef.current) setLoadError(true);
     }).finally(() => setLoading(false));
-  }, [worldId]);
+  }, [worldId, loadRetry]);
 
   useEffect(() => {
     if (world && world.onboarding_complete === false) {
@@ -324,6 +329,20 @@ export default function WorldPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <Spinner />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4 text-ink/60">
+        <p>世界加载失败，请检查网络或刷新重试。</p>
+        <button
+          onClick={() => { setLoadError(false); setLoading(true); setLoadRetry(n => n + 1); }}
+          className="px-4 py-2 text-sm border border-ink/20 rounded-lg hover:text-ink"
+        >
+          重试
+        </button>
       </div>
     );
   }

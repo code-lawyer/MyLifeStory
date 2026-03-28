@@ -45,7 +45,10 @@ export function setLLMAdapter(fn) {
 export async function callLLM(messages, systemPrompt, apiConfig) {
     if (adapter) return adapter(messages, systemPrompt);
 
-    const { apiUrl, apiKey, model } = apiConfig;
+    const { apiUrl, apiKey, model } = apiConfig ?? {};
+    if (!apiUrl || !apiKey || !model) {
+        throw new Error('API 未配置，请前往设置填写 API URL、Key 和模型名称');
+    }
     validateApiUrl(apiUrl);
     const response = await fetch(`${apiUrl}/chat/completions`, {
         method: 'POST',
@@ -87,7 +90,10 @@ export async function streamLLM(messages, systemPrompt, apiConfig, onChunk) {
         return;
     }
 
-    const { apiUrl, apiKey, model } = apiConfig;
+    const { apiUrl, apiKey, model } = apiConfig ?? {};
+    if (!apiUrl || !apiKey || !model) {
+        throw new Error('API 未配置，请前往设置填写 API URL、Key 和模型名称');
+    }
     validateApiUrl(apiUrl);
     const response = await fetch(`${apiUrl}/chat/completions`, {
         method: 'POST',

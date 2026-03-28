@@ -17,6 +17,7 @@ export default function SetupPage() {
 
   const [world, setWorld] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [step, setStep] = useState(0); // 0=mode, 1=bio, 2=core npcs, 3=bulk generate
   const [narrativeMode, setNarrativeMode] = useState('ensemble');
   const [protagonistBio, setProtagonistBio] = useState('');
@@ -27,7 +28,7 @@ export default function SetupPage() {
   useEffect(() => {
     worldsApi.get(worldId)
       .then(setWorld)
-      .catch((err) => console.error('Failed to load world for setup:', err))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [worldId]);
 
@@ -39,7 +40,12 @@ export default function SetupPage() {
   }
 
   if (loading) return <div className="min-h-screen bg-parchment flex items-center justify-center"><Spinner /></div>;
-  if (!world) return <div className="min-h-screen bg-parchment p-10"><p className="text-ink/50">世界未找到</p></div>;
+  if (loadError || !world) return (
+    <div className="min-h-screen bg-parchment flex flex-col items-center justify-center gap-4 text-ink/60">
+      <p>世界加载失败，请刷新重试。</p>
+      <button onClick={() => navigate(-1)} className="text-sm underline underline-offset-2">返回</button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-parchment">
