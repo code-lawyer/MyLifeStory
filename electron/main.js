@@ -10,7 +10,7 @@ const DATA_ROOT = app.isPackaged ? PROD_DATA_ROOT : DEV_DATA_ROOT;
 let mainWindow = null;
 
 // Inject CLI args before server.js reads them
-process.argv.push('--dataRoot', DATA_ROOT, '--port', String(PORT), '--disableCsrf');
+process.argv.push('--dataRoot', DATA_ROOT, '--port', String(PORT), '--disableCsrf', '--whitelist', 'false');
 
 async function startServer() {
     try {
