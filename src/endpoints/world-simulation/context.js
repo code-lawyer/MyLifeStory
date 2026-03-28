@@ -1,6 +1,7 @@
 import express from 'express';
 import { readRelationships } from './storage/relationships.js';
 import { readCharacter } from './storage/characters.js';
+import { PERIOD_LABELS } from './format-helpers.js';
 export const router = express.Router();
 
 // All budget fractions must sum to 1.0 per mode.
@@ -9,8 +10,6 @@ const BUDGETS = {
     ensemble: { worldBase: 0.08, scene: 0.07, player: 0.05, events: 0.20, characters: 0.25, chat: 0.35 },
     epic:     { worldBase: 0.15, scene: 0.05, player: 0.05, events: 0.30, characters: 0.20, chat: 0.25 },
 };
-
-const PERIOD_LABELS = { morning: '清晨', afternoon: '午后', evening: '傍晚', night: '深夜' };
 
 const CHARS_PER_TOKEN = 4; // rough estimate
 

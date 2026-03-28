@@ -6,6 +6,7 @@ import { readSummaries } from './storage/summaries.js';
 import { listCharacters } from './storage/characters.js';
 import { callLLM } from './llm-client.js';
 import { parseLLMJson } from './llm-helpers.js';
+import { PERIOD_LABELS } from './format-helpers.js';
 import { validateIdParams } from './validate-id.js';
 
 export const router = express.Router();
@@ -65,8 +66,6 @@ router.post('/:worldId/update', vId, async (req, res) => {
     }
 });
 
-const PERIOD_LABELS_TICK = { morning: '清晨', afternoon: '午后', evening: '傍晚', night: '深夜' };
-
 const TICK_SYSTEM = `你是世界叙事者。根据世界状态和角色动态，判断是否应该生成一个由NPC自发引起的世界事件。
 如果是，返回JSON：
 {"significant":true,"title":"...","description":"...","impact_scope":"minor|moderate","affected_characters":[],"narrative":"叙事化提示，以「不知何时起」或「听闻」开头"}
@@ -103,7 +102,7 @@ router.post('/:worldId/tick', vId, async (req, res) => {
 
         const userMessage = [
             `世界：${world.name}`,
-            `当前时间：第${clock.day}天·${PERIOD_LABELS_TICK[clock.period] || clock.period}`,
+            `当前时间：第${clock.day}天·${PERIOD_LABELS[clock.period] || clock.period}`,
             `世界状态：${world.current_state?.summary || '（暂无）'}`,
             npcList ? `主要角色状态：${npcList}` : '',
             recentEventSummary ? `近期事件：${recentEventSummary}` : '',

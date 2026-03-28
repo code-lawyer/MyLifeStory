@@ -1,7 +1,7 @@
 // src/endpoints/world-simulation/chat.js
 import express from 'express';
 import { streamLLM, callLLM } from './llm-client.js';
-import { parseLLMJson } from './llm-helpers.js';
+import { PERIOD_LABELS } from './format-helpers.js';
 import { validateIdParams } from './validate-id.js';
 
 export const router = express.Router();
@@ -42,8 +42,7 @@ router.post('/:worldId/npc-init', validateIdParams('worldId'), async (req, res) 
         return res.status(400).json({ error: 'missing_fields' });
     }
 
-    const periodLabel = { morning: '清晨', afternoon: '午后', evening: '傍晚', night: '深夜' };
-    const timeStr = clock ? `第${clock.day}天·${periodLabel[clock.period] || clock.period}` : '';
+    const timeStr = clock ? `第${clock.day}天·${PERIOD_LABELS[clock.period] || clock.period}` : '';
 
     const userMessage = [
         `场景：${scene.name} — ${scene.description || ''}`,

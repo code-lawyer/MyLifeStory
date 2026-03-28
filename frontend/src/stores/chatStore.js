@@ -33,10 +33,7 @@ export const useChatStore = create((set, get) => ({
   },
 
   addSystemMessage(text) {
-    const id = crypto.randomUUID();
-    set((s) => ({
-      blocks: [...s.blocks, { id, characterId: '__system__', characterName: null, messages: [{ role: 'assistant', content: text }] }],
-    }));
+    get().addNpcMessage('__system__', null, text);
   },
 
   addNpcMessage(characterId, characterName, message) {

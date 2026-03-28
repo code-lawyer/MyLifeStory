@@ -237,7 +237,9 @@ router.post('/:worldId/advance-time', vId, async (req, res) => {
             day: nextIdx === 0 ? clock.day + 1 : clock.day,
             period: PERIODS[nextIdx],
         };
-        await writeWorld(dirs, req.params.worldId, { ...world, clock: newClock });
+        // Re-read before write so concurrent tick writes (e.g. last_tick_day) aren't clobbered
+        const fresh = await readWorld(dirs, req.params.worldId);
+        await writeWorld(dirs, req.params.worldId, { ...(fresh || world), clock: newClock });
         res.json({ clock: newClock });
     } catch (err) {
         console.error(err);
