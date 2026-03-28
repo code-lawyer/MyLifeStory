@@ -5,6 +5,7 @@ import { worldsApi } from '../api/worlds.js';
 import { playerApi } from '../api/player.js';
 import { eventsApi } from '../api/events.js';
 import { scenesApi } from '../api/scenes.js';
+import { stateApi } from '../api/state.js';
 import { useEventStore } from '../stores/eventStore.js';
 
 import { useChatStore } from '../stores/chatStore.js';
@@ -120,6 +121,18 @@ export default function WorldPage() {
       setEvents(evts.events || []);
       setSummaries(evts.summaries || []);
       if (charList.length > 0) setSelectedCharacterId(charList[0].id);
+
+      // Fire-and-forget: world heartbeat — surface NPC-driven event if new day
+      const worldClock = w?.clock || { day: 1, period: 'morning' };
+      if (worldClock.day > (w?.last_tick_day ?? 0)) {
+        stateApi.tick(worldId, apiConfig)
+          .then(({ proposal }) => {
+            if (proposal && mountedRef.current && !useEventStore.getState().pendingProposal) {
+              useEventStore.getState().setPendingProposal(proposal);
+            }
+          })
+          .catch(() => {});
+      }
     }).finally(() => setLoading(false));
   }, [worldId]);
 
