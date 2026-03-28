@@ -13,6 +13,7 @@ import EventProposalCard from '../components/chat/EventProposalCard.jsx';
 import CharacterSelector from '../components/world/CharacterSelector.jsx';
 import { charactersApi } from '../api/characters.js';
 import { relationshipsApi } from '../api/relationships.js';
+import { npcInit } from '../api/chat.js';
 import MapPanel from '../components/panels/MapPanel.jsx';
 import PlayerProfilePanel from '../components/panels/PlayerProfilePanel.jsx';
 import InventoryPanel from '../components/panels/InventoryPanel.jsx';
@@ -25,6 +26,7 @@ import InitScenesModal from '../components/world/InitScenesModal.jsx';
 import { useSettingsStore } from '../stores/settingsStore.js';
 
 const NARRATIVE_MODE_LABELS = { intimate: '亲密', ensemble: '群像', epic: '史诗' };
+const PERIOD_LABELS = { morning: '清晨', afternoon: '午后', evening: '傍晚', night: '深夜' };
 
 export default function WorldPage() {
   const { worldId } = useParams();
@@ -227,6 +229,34 @@ export default function WorldPage() {
     const sceneNarrative = scene.description ? `「${scene.name}」${scene.description}` : `「${scene.name}」`;
     useChatStore.getState().addSystemMessage(sceneNarrative);
     setPlayer((prev) => prev ? { ...prev, status: { ...prev.status, current_location: scene.id } } : prev);
+
+    // Fire-and-forget: advance world clock on every scene entry
+    worldsApi.advanceTime(worldId)
+      .then(({ clock }) => { if (mountedRef.current) setWorld(prev => prev ? { ...prev, clock } : prev); })
+      .catch(() => {});
+
+    // Fire-and-forget: NPC may greet the player on scene entry
+    const sceneCharIds = new Set(
+      (scene.characters_present || []).map(e => (typeof e === 'string' ? e : e.id))
+    );
+    const initChars = characters.filter(c => sceneCharIds.has(c.id));
+    if (initChars.length > 0) {
+      npcInit(worldId, {
+        scene: { id: scene.id, name: scene.name, description: scene.description },
+        characters: initChars.map(c => ({
+          id: c.id, name: c.name,
+          identity: c.identity,
+          current_state: c.current_state,
+          voice: c.voice,
+        })),
+        worldState: world?.current_state,
+        clock: world?.clock,
+        apiConfig,
+      }).then(({ characterId, characterName, message }) => {
+        if (!characterId || !message || !mountedRef.current) return;
+        useChatStore.getState().addNpcMessage(characterId, characterName, message);
+      }).catch(() => {});
+    }
   }
 
   const handleTurnComplete = useCallback(async () => {
@@ -319,6 +349,12 @@ export default function WorldPage() {
             <p className="text-[10px] text-ink/30 uppercase tracking-wider mb-1">场景</p>
             <p className="text-xs text-ink/60 truncate">{currentScene?.name || player?.status?.current_location || '未知'}</p>
           </div>
+          {world?.clock && (
+            <div>
+              <p className="text-[10px] text-ink/30 uppercase tracking-wider mb-1">时间</p>
+              <p className="text-xs text-ink/60">第{world.clock.day}天 · {PERIOD_LABELS[world.clock.period] || world.clock.period}</p>
+            </div>
+          )}
 
           <div className="flex-1" />
 

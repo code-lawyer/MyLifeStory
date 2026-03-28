@@ -32,4 +32,7 @@ export const worldsApi = {
       method: 'POST',
       body: JSON.stringify({ event, activeCharacterIds, apiConfig }),
     }),
+
+  advanceTime: (worldId) =>
+    apiFetch(`${BASE}/worlds/${worldId}/advance-time`, { method: 'POST' }),
 };
