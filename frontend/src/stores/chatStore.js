@@ -39,6 +39,18 @@ export const useChatStore = create((set, get) => ({
     }));
   },
 
+  addNpcMessage(characterId, characterName, message) {
+    const id = crypto.randomUUID();
+    set((s) => ({
+      blocks: [...s.blocks, {
+        id,
+        characterId,
+        characterName,
+        messages: [{ role: 'assistant', content: message }],
+      }],
+    }));
+  },
+
   getAllMessages() {
     return get().blocks.flatMap(b => b.messages);
   },

@@ -80,3 +80,27 @@ test('POST /worlds returns 400 when id or name missing', async () => {
     });
     expect(r.status).toBe(400);
 });
+
+test('POST /worlds/:worldId/advance-time advances period from morning to afternoon', async () => {
+    await fetch(`${url}/worlds`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'wt1', name: 'Clock World' }),
+    });
+    const r = await fetch(`${url}/worlds/wt1/advance-time`, { method: 'POST' });
+    expect(r.status).toBe(200);
+    const { clock } = await r.json();
+    expect(clock).toEqual({ day: 1, period: 'afternoon' });
+});
+
+test('POST /worlds/:worldId/advance-time wraps night to next day morning', async () => {
+    await fetch(`${url}/worlds`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'wt2', name: 'Clock World', clock: { day: 2, period: 'night' } }),
+    });
+    const r = await fetch(`${url}/worlds/wt2/advance-time`, { method: 'POST' });
+    expect(r.status).toBe(200);
+    const { clock } = await r.json();
+    expect(clock).toEqual({ day: 3, period: 'morning' });
+});

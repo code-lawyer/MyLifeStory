@@ -64,3 +64,10 @@ export async function streamChat({ worldId, systemPrompt, messages, apiConfig, o
         reader.cancel();
     }
 }
+
+export async function npcInit(worldId, payload) {
+    return apiFetch(`/api/world-sim/chat/${worldId}/npc-init`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}

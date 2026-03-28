@@ -9,4 +9,9 @@ export const stateApi = {
             method: 'POST',
             body: JSON.stringify({ apiConfig }),
         }),
+    tick: (worldId, apiConfig) =>
+        apiFetch(`${BASE(worldId)}/tick`, {
+            method: 'POST',
+            body: JSON.stringify({ apiConfig }),
+        }),
 };

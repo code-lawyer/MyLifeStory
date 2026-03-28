@@ -220,3 +220,27 @@ router.post('/:worldId/npc-drift', vId, async (req, res) => {
         res.status(500).json({ error: 'internal_error' });
     }
 });
+
+const PERIODS = ['morning', 'afternoon', 'evening', 'night'];
+
+// POST /:worldId/advance-time — advance world clock by one period
+router.post('/:worldId/advance-time', vId, async (req, res) => {
+    try {
+        const dirs = req.user.directories;
+        const world = await readWorld(dirs, req.params.worldId);
+        if (!world) return res.status(404).json({ error: 'world_not_found' });
+
+        const clock = world.clock || { day: 1, period: 'morning' };
+        const currentIdx = PERIODS.indexOf(clock.period);
+        const nextIdx = currentIdx === -1 ? 1 : (currentIdx + 1) % PERIODS.length;
+        const newClock = {
+            day: nextIdx === 0 ? clock.day + 1 : clock.day,
+            period: PERIODS[nextIdx],
+        };
+        await writeWorld(dirs, req.params.worldId, { ...world, clock: newClock });
+        res.json({ clock: newClock });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'internal_error' });
+    }
+});
