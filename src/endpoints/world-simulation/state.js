@@ -37,7 +37,7 @@ router.post('/:worldId/update', vId, async (req, res) => {
         if (!world) return res.status(404).json({ error: 'world_not_found' });
 
         const events = await readEvents(dirs, worldId);
-        const summaries = await readSummaries(dirs, worldId);
+        const summaries = await readSummaries(dirs, worldId).catch(() => ({ summaries: [] }));
 
         const MAX_EVENTS_FOR_LLM = 20;
         const recentEvents = events.events.slice(-MAX_EVENTS_FOR_LLM);
