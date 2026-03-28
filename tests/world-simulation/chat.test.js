@@ -62,19 +62,15 @@ test('POST /w1 returns SSE error event when LLM throws', async () => {
 });
 
 describe('POST /:worldId/npc-init', () => {
-    test('returns characterId and message when LLM triggers NPC', async () => {
-        setLLMAdapter(async () => JSON.stringify({
-            trigger: true,
-            character_id: 'char_abc',
-            character_name: 'Ada',
-            message: '你终于来了。',
-        }));
+    test('returns characterId and message when LLM generates a line', async () => {
+        setLLMAdapter(async () => '你终于来了。');
         const res = await fetch(`${url}/w1/npc-init`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 scene: { id: 's1', name: '酒馆', description: '嘈杂的地方' },
-                characters: [{ id: 'char_abc', name: 'Ada', voice: { style: '冷淡' }, current_state: { status: '候客' }, identity: { description: '神秘女侠' } }],
+                character: { id: 'char_abc', name: 'Ada', voice: { style: '冷淡' }, current_state: { status: '候客' } },
+                familiarity: 85,
                 worldState: { summary: '王国动荡' },
                 clock: { day: 2, period: 'evening' },
                 apiConfig: {},
@@ -87,14 +83,15 @@ describe('POST /:worldId/npc-init', () => {
         expect(json.message).toBe('你终于来了。');
     });
 
-    test('returns null fields when LLM decides no trigger', async () => {
-        setLLMAdapter(async () => JSON.stringify({ trigger: false }));
+    test('returns null fields when LLM returns empty string', async () => {
+        setLLMAdapter(async () => '');
         const res = await fetch(`${url}/w1/npc-init`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 scene: { id: 's1', name: '荒野', description: '' },
-                characters: [{ id: 'c1', name: 'Bob', voice: {}, current_state: {}, identity: {} }],
+                character: { id: 'c1', name: 'Bob', voice: {}, current_state: {} },
+                familiarity: 72,
                 apiConfig: {},
             }),
         });
@@ -104,11 +101,11 @@ describe('POST /:worldId/npc-init', () => {
         expect(json.message).toBeNull();
     });
 
-    test('returns 400 when scene or characters missing', async () => {
+    test('returns 400 when scene or character missing', async () => {
         const res = await fetch(`${url}/w1/npc-init`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ characters: [] }),
+            body: JSON.stringify({ familiarity: 80 }),
         });
         expect(res.status).toBe(400);
     });

@@ -248,20 +248,25 @@ export default function WorldPage() {
       .then(({ clock }) => { if (mountedRef.current) setWorld(prev => prev ? { ...prev, clock } : prev); })
       .catch(() => {});
 
-    // Fire-and-forget: NPC may greet the player on scene entry
+    // Fire-and-forget: NPC with familiarity >= 70 greets player — pick the most familiar one
     const sceneCharIds = new Set(
       (scene.characters_present || []).map(e => (typeof e === 'string' ? e : e.id))
     );
-    const initChars = characters.filter(c => sceneCharIds.has(c.id));
-    if (initChars.length > 0) {
+    const eligible = characters
+      .filter(c => sceneCharIds.has(c.id) && (relationshipsRef.current[c.id]?.familiarity ?? 0) >= 70)
+      .sort((a, b) => (relationshipsRef.current[b.id]?.familiarity ?? 0) - (relationshipsRef.current[a.id]?.familiarity ?? 0));
+    if (eligible.length > 0) {
+      const chosenChar = eligible[0];
+      const familiarity = relationshipsRef.current[chosenChar.id]?.familiarity ?? 70;
       npcInit(worldId, {
         scene: { id: scene.id, name: scene.name, description: scene.description },
-        characters: initChars.map(c => ({
-          id: c.id, name: c.name,
-          identity: c.identity,
-          current_state: c.current_state,
-          voice: c.voice,
-        })),
+        character: {
+          id: chosenChar.id, name: chosenChar.name,
+          identity: chosenChar.identity,
+          current_state: chosenChar.current_state,
+          voice: chosenChar.voice,
+        },
+        familiarity,
         worldState: world?.current_state,
         clock: world?.clock,
         apiConfig,

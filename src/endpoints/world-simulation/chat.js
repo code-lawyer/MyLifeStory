@@ -33,52 +33,34 @@ router.post('/:worldId', validateIdParams('worldId'), async (req, res) => {
     res.end();
 });
 
-const NPC_INIT_SYSTEM = `你是世界叙事者。玩家刚刚进入了一个场景，判断是否有NPC应该主动向玩家搭话。
-约50%的场合下触发。如果触发，选择最适合开口的NPC，用TA的语气说一句话（中文，30字以内，自然口语，不要解释性文字）。
-返回JSON：{"trigger":true,"character_id":"...","character_name":"...","message":"..."}
-或：{"trigger":false}
-只返回JSON，不要解释。`;
+const NPC_INIT_SYSTEM = `你是世界叙事者。玩家刚刚进入了场景，场景中有一个与玩家关系深厚的NPC主动开口搭话。根据NPC的信息，生成TA此刻说的一句话（中文，30字以内，自然口语，符合语气风格）。只输出那句话，不要解释，不要引号。`;
 
-// POST /:worldId/npc-init — NPC may spontaneously speak on scene entry
+// POST /:worldId/npc-init — generate opening line for a pre-selected NPC (familiarity >= 70)
 router.post('/:worldId/npc-init', validateIdParams('worldId'), async (req, res) => {
-    const { scene, characters, worldState, clock, apiConfig = {} } = req.body;
-    if (!scene || !Array.isArray(characters) || characters.length === 0) {
+    const { scene, character, familiarity, worldState, clock, apiConfig = {} } = req.body;
+    if (!scene || !character?.id) {
         return res.status(400).json({ error: 'missing_fields' });
     }
 
     const periodLabel = { morning: '清晨', afternoon: '午后', evening: '傍晚', night: '深夜' };
     const timeStr = clock ? `第${clock.day}天·${periodLabel[clock.period] || clock.period}` : '';
 
-    const charList = characters.map(c =>
-        `- ${c.name}（ID:${c.id}）：${c.current_state?.status || c.identity?.description?.slice(0, 40) || ''}，语气：${c.voice?.style || '中性'}`
-    ).join('\n');
-
     const userMessage = [
         `场景：${scene.name} — ${scene.description || ''}`,
         timeStr ? `当前时间：${timeStr}` : '',
         worldState?.summary ? `世界状态：${worldState.summary}` : '',
-        `场景中的角色：\n${charList}`,
+        `NPC：${character.name}（当前状态：${character.current_state?.status || ''}，语气风格：${character.voice?.style || '中性'}）`,
+        `与玩家的熟悉度：${familiarity ?? 70}/100`,
     ].filter(Boolean).join('\n');
 
-    let raw;
+    let message;
     try {
-        raw = await callLLM([{ role: 'user', content: userMessage }], NPC_INIT_SYSTEM, apiConfig);
+        message = (await callLLM([{ role: 'user', content: userMessage }], NPC_INIT_SYSTEM, apiConfig)).trim();
     } catch {
         return res.json({ characterId: null, characterName: null, message: null });
     }
 
-    let parsed;
-    try { parsed = parseLLMJson(raw); } catch {
-        return res.json({ characterId: null, characterName: null, message: null });
-    }
+    if (!message) return res.json({ characterId: null, characterName: null, message: null });
 
-    if (!parsed.trigger || !parsed.character_id || !parsed.message) {
-        return res.json({ characterId: null, characterName: null, message: null });
-    }
-
-    res.json({
-        characterId: parsed.character_id,
-        characterName: parsed.character_name || '',
-        message: parsed.message,
-    });
+    res.json({ characterId: character.id, characterName: character.name, message });
 });
