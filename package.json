@@ -122,14 +122,14 @@
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/jest.config.json",
         "test:ws": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config tests/jest.config.json --testPathPattern=tests/world-simulation",
         "build:frontend": "cd frontend && npm run build",
-        "electron:dev": "electron electron/main.js",
+        "electron:dev": "electron electron/main.cjs",
         "electron:build": "npm run build:frontend && electron-builder"
     },
     "rules": {
         "no-path-concat": "off",
         "no-var": "off"
     },
-    "main": "server.js",
+    "main": "electron/main.cjs",
     "devDependencies": {
         "@chevrotain/types": "^11.0.3",
         "@types/archiver": "^6.0.3",
