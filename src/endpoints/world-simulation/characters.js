@@ -10,9 +10,9 @@ export const router = express.Router();
 const vId = validateIdParams('charId');
 
 function stripHidden(char) {
-  if (!char) return char;
-  const { hidden_traits, ...safe } = char;
-  return safe;
+    if (!char) return char;
+    const { hidden_traits, ...safe } = char;
+    return safe;
 }
 
 // GET / — list all characters
@@ -48,42 +48,42 @@ router.post('/', async (req, res) => {
         res.status(201).json(stripHidden(char));
 
         if (char.is_core && char.world_id && protagonistBio) {
-          (async () => {
-            try {
-              const raw = await callLLM(
-                [{ role: 'user', content: `Protagonist bio: ${protagonistBio}\nNPC: ${char.name}\nRelationship: ${char.current_state?.relationship_to_player || 'unknown'}` }],
-                INIT_FAMILIARITY_SYSTEM,
-                apiConfig || {}
-              );
-              const parsed = parseLLMJson(raw);
-              const familiarity = Math.max(0, Math.min(100, parseInt(parsed.initial_familiarity) || 20));
+            (async () => {
+                try {
+                    const raw = await callLLM(
+                        [{ role: 'user', content: `Protagonist bio: ${protagonistBio}\nNPC: ${char.name}\nRelationship: ${char.current_state?.relationship_to_player || 'unknown'}` }],
+                        INIT_FAMILIARITY_SYSTEM,
+                        apiConfig || {},
+                    );
+                    const parsed = parseLLMJson(raw);
+                    const familiarity = Math.max(0, Math.min(100, parseInt(parsed.initial_familiarity) || 20));
 
-              const relData = await readRelationships(req.user.directories, char.world_id);
-              relData.relationships[char.id] = { familiarity, last_interaction: new Date().toISOString() };
-              await writeRelationships(req.user.directories, char.world_id, relData);
-            } catch (err) {
-              console.warn('[characters] familiarity init failed, defaulting to 20:', err.message);
-              try {
-                const relData = await readRelationships(req.user.directories, char.world_id);
-                relData.relationships[char.id] = { familiarity: 20, last_interaction: null };
-                await writeRelationships(req.user.directories, char.world_id, relData);
-              } catch { /* give up */ }
-            }
-          })().catch(() => {});
+                    const relData = await readRelationships(req.user.directories, char.world_id);
+                    relData.relationships[char.id] = { familiarity, last_interaction: new Date().toISOString() };
+                    await writeRelationships(req.user.directories, char.world_id, relData);
+                } catch (err) {
+                    console.warn('[characters] familiarity init failed, defaulting to 20:', err.message);
+                    try {
+                        const relData = await readRelationships(req.user.directories, char.world_id);
+                        relData.relationships[char.id] = { familiarity: 20, last_interaction: null };
+                        await writeRelationships(req.user.directories, char.world_id, relData);
+                    } catch { /* give up */ }
+                }
+            })().catch(() => {});
         }
 
         if (char.is_core && (char.tier === 'legendary' || char.tier === 'elite') && Math.random() < 0.2) {
-          callLLM(
-            [{ role: 'user', content: `NPC: ${char.name}\nDescription: ${char.identity?.description || ''}\nPersonality: ${char.identity?.personality || ''}` }],
-            DARK_SIDE_SYSTEM,
-            apiConfig || {}
-          ).then(async (raw) => {
-            try {
-              const ht = parseLLMJson(raw);
-              const latest = await readCharacter(req.user.directories, char.id);
-              if (latest) await writeCharacter(req.user.directories, char.id, { ...latest, hidden_traits: ht });
-            } catch { /* skip */ }
-          }).catch((err) => { console.warn('[characters] dark side generation failed for', char.id, ':', err.message); });
+            callLLM(
+                [{ role: 'user', content: `NPC: ${char.name}\nDescription: ${char.identity?.description || ''}\nPersonality: ${char.identity?.personality || ''}` }],
+                DARK_SIDE_SYSTEM,
+                apiConfig || {},
+            ).then(async (raw) => {
+                try {
+                    const ht = parseLLMJson(raw);
+                    const latest = await readCharacter(req.user.directories, char.id);
+                    if (latest) await writeCharacter(req.user.directories, char.id, { ...latest, hidden_traits: ht });
+                } catch { /* skip */ }
+            }).catch((err) => { console.warn('[characters] dark side generation failed for', char.id, ':', err.message); });
         }
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });

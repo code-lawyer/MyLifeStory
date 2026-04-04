@@ -7,5 +7,5 @@ import { stripFences } from './prompts.js';
  * @throws {SyntaxError} if not valid JSON after stripping fences
  */
 export function parseLLMJson(raw) {
-  return JSON.parse(stripFences(raw));
+    return JSON.parse(stripFences(raw));
 }

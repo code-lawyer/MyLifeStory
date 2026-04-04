@@ -15,10 +15,10 @@ const SCALE_COUNTS = {
 };
 
 const NPC_TIER_PROMPTS = {
-    legendary: `Generate a LEGENDARY tier NPC with rich detail (~200 chars description, personality, background, 3 example voice lines). Return JSON: {"name":"","identity":{"description":"","personality":"","background":""},"power_tier":0,"current_state":{"relationship_to_player":"neutral","status":""},"voice":{"style":"","example_lines":[]}}`,
-    elite: `Generate an ELITE tier NPC with standard detail (~80 chars description, personality, 1 voice line). Return JSON: {"name":"","identity":{"description":"","personality":""},"power_tier":0,"current_state":{"relationship_to_player":"neutral","status":""},"voice":{"style":"","example_lines":[]}}`,
-    normal: `Generate a NORMAL tier NPC with brief detail (~30 chars). Return JSON: {"name":"","identity":{"description":""},"current_state":{"relationship_to_player":"neutral"}}`,
-    disposable: `Generate a DISPOSABLE tier NPC template (role title, generic description). Return JSON: {"name":"","identity":{"description":""}}`,
+    legendary: 'Generate a LEGENDARY tier NPC with rich detail (~200 chars description, personality, background, 3 example voice lines). Return JSON: {"name":"","identity":{"description":"","personality":"","background":""},"power_tier":0,"current_state":{"relationship_to_player":"neutral","status":""},"voice":{"style":"","example_lines":[]}}',
+    elite: 'Generate an ELITE tier NPC with standard detail (~80 chars description, personality, 1 voice line). Return JSON: {"name":"","identity":{"description":"","personality":""},"power_tier":0,"current_state":{"relationship_to_player":"neutral","status":""},"voice":{"style":"","example_lines":[]}}',
+    normal: 'Generate a NORMAL tier NPC with brief detail (~30 chars). Return JSON: {"name":"","identity":{"description":""},"current_state":{"relationship_to_player":"neutral"}}',
+    disposable: 'Generate a DISPOSABLE tier NPC template (role title, generic description). Return JSON: {"name":"","identity":{"description":""}}',
 };
 
 const SCENE_PROMPT = `Generate a UNIQUE scene/location for this world. The scene name MUST be different from all previously generated scenes.
@@ -38,7 +38,7 @@ router.post('/bulk-npcs', async (req, res) => {
     const counts = SCALE_COUNTS[scale] || SCALE_COUNTS.small;
     const tiers = ['legendary', 'elite', 'normal', 'disposable'];
     const tasks = tiers.flatMap(tier =>
-        Array.from({ length: counts[tier] }, () => tier)
+        Array.from({ length: counts[tier] }, () => tier),
     );
     const total = tasks.length;
 
@@ -87,7 +87,7 @@ router.post('/bulk-npcs', async (req, res) => {
         callLLM(
             [{ role: 'user', content: `NPC surface personality:\nName: ${npc.name}\nDescription: ${npc.identity?.description || ''}\nPersonality: ${npc.identity?.personality || ''}` }],
             DARK_SIDE_SYSTEM,
-            apiConfig
+            apiConfig,
         ).then(async (raw) => {
             try {
                 const ht = parseLLMJson(raw);
@@ -137,14 +137,14 @@ router.post('/scenes', async (req, res) => {
     const firstAssignment = {}; // charId -> { sceneId, role }
 
     const worldBase = `\nWorld: ${worldContext.foundation?.background || ''}\nGeography: ${worldContext.foundation?.geography || ''}`;
-    const worldImportant = `\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.`;
+    const worldImportant = '\nIMPORTANT: Respond in the same language as the world description. Respond only with valid JSON.';
 
     for (let i = 0; i < total; i++) {
         const previousList = [...usedNames].join(', ') || 'none';
 
         // Build available character list for this scene (respect tier limits)
         const availableChars = characters.filter(c =>
-            (assignedCount[c.id] || 0) < (TIER_SCENE_LIMITS[c.tier] || 1)
+            (assignedCount[c.id] || 0) < (TIER_SCENE_LIMITS[c.tier] || 1),
         );
         const charHint = availableChars.length > 0
             ? `\nAvailable characters (assign 2-5 that fit this location): ${availableChars.map(c => `${c.name} (${c.tier || 'normal'})`).join(', ')}\nFor each assigned character include their name and role (why they are here).`

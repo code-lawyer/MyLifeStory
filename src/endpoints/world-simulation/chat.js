@@ -33,7 +33,7 @@ router.post('/:worldId', validateIdParams('worldId'), async (req, res) => {
     res.end();
 });
 
-const NPC_INIT_SYSTEM = `你是世界叙事者。玩家刚刚进入了场景，场景中有一个与玩家关系深厚的NPC主动开口搭话。根据NPC的信息，生成TA此刻说的一句话（中文，30字以内，自然口语，符合语气风格）。只输出那句话，不要解释，不要引号。`;
+const NPC_INIT_SYSTEM = '你是世界叙事者。玩家刚刚进入了场景，场景中有一个与玩家关系深厚的NPC主动开口搭话。根据NPC的信息，生成TA此刻说的一句话（中文，30字以内，自然口语，符合语气风格）。只输出那句话，不要解释，不要引号。';
 
 // POST /:worldId/npc-init — generate opening line for a pre-selected NPC (familiarity >= 70)
 router.post('/:worldId/npc-init', validateIdParams('worldId'), async (req, res) => {

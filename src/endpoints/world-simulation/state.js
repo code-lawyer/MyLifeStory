@@ -12,7 +12,7 @@ import { validateIdParams } from './validate-id.js';
 export const router = express.Router();
 const vId = validateIdParams('worldId');
 
-const STATE_SYSTEM = `You are a world historian. Given a list of world events, write a concise 2-3 sentence summary of the current world state in Chinese. Output plain text only.`;
+const STATE_SYSTEM = 'You are a world historian. Given a list of world events, write a concise 2-3 sentence summary of the current world state in Chinese. Output plain text only.';
 
 // GET /:worldId
 router.get('/:worldId', vId, async (req, res) => {

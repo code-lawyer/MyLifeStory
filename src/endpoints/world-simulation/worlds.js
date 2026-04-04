@@ -112,7 +112,7 @@ router.delete('/:worldId', vId, async (req, res) => {
     } catch (err) { console.error(err); res.status(500).json({ error: 'internal_error' }); }
 });
 
-const NARRATE_SYSTEM = `你是世界叙事者。根据世界背景、当前状态和最新事件，用2~3句中文重写当前状态摘要。只输出摘要文本，不要标题、不要解释。`;
+const NARRATE_SYSTEM = '你是世界叙事者。根据世界背景、当前状态和最新事件，用2~3句中文重写当前状态摘要。只输出摘要文本，不要标题、不要解释。';
 
 // POST /:worldId/narrate — update world current_state.summary after an event
 router.post('/:worldId/narrate', vId, async (req, res) => {
@@ -154,7 +154,7 @@ router.post('/:worldId/narrate', vId, async (req, res) => {
     }
 });
 
-const NPC_DRIFT_SYSTEM = `你是世界叙事者。根据事件和角色当前状态，用1~2句中文更新角色的当前状态描述。只输出状态文本，不要标题、不要解释。`;
+const NPC_DRIFT_SYSTEM = '你是世界叙事者。根据事件和角色当前状态，用1~2句中文更新角色的当前状态描述。只输出状态文本，不要标题、不要解释。';
 
 const SAFE_ID = /^[\w-]{1,64}$/;
 const MAX_NPC_DRIFT = 5;

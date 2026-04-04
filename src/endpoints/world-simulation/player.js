@@ -7,7 +7,7 @@ import { fmtEvent } from './format-helpers.js';
 
 const clamp = (v) => Math.max(0, Math.min(100, v));
 
-const PLAYER_DRIFT_SYSTEM = `你是命运裁判。根据事件，用JSON输出玩家三项属性的变化量。格式：{"health":N,"mental":N,"reputation":N}，N为整数。只输出JSON，不要解释。`;
+const PLAYER_DRIFT_SYSTEM = '你是命运裁判。根据事件，用JSON输出玩家三项属性的变化量。格式：{"health":N,"mental":N,"reputation":N}，N为整数。只输出JSON，不要解释。';
 
 export const router = express.Router();
 const vId = validateIdParams('worldId');

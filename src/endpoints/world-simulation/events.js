@@ -39,7 +39,7 @@ router.post('/:worldId', vId, async (req, res) => {
             const affected = sceneData.scenes.filter(s => s.unlocked_by_event === event.id);
             if (affected.length > 0) {
                 sceneData.scenes = sceneData.scenes.map(s =>
-                    s.unlocked_by_event === event.id ? { ...s, is_locked: false } : s
+                    s.unlocked_by_event === event.id ? { ...s, is_locked: false } : s,
                 );
                 await writeScenes(req.user.directories, req.params.worldId, sceneData);
             }
@@ -73,7 +73,7 @@ Rules for affected_characters:
 If nothing significant occurred, respond with JSON: {"significant":false}
 Only respond with JSON, no other text.`;
 
-const COMPRESS_SYSTEM = `You are a world historian. Summarize the provided list of events into a single paragraph of narrative prose. Be concise. Output plain text only.`;
+const COMPRESS_SYSTEM = 'You are a world historian. Summarize the provided list of events into a single paragraph of narrative prose. Be concise. Output plain text only.';
 
 // POST /:worldId/propose
 router.post('/:worldId/propose', vId, async (req, res) => {
