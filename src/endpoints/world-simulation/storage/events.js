@@ -21,14 +21,30 @@ export async function writeEvents(directories, worldId, data) {
     await writeFileAtomic(getPath(directories, worldId), JSON.stringify(data, null, 2));
 }
 
+// Simple per-world lock to serialize read-modify-write operations
+const _locks = new Map();
+async function withLock(worldId, fn) {
+    const prev = _locks.get(worldId) || Promise.resolve();
+    const next = prev.then(fn, fn);
+    _locks.set(worldId, next);
+    try { return await next; } finally {
+        if (_locks.get(worldId) === next) _locks.delete(worldId);
+    }
+}
+
 export async function appendEvent(directories, worldId, event) {
-    const data = await readEvents(directories, worldId);
-    data.events.push(event);
-    await writeEvents(directories, worldId, data);
+    return withLock(worldId, async () => {
+        const data = await readEvents(directories, worldId);
+        data.events.push(event);
+        await writeEvents(directories, worldId, data);
+    });
 }
 
 export async function deleteEvent(directories, worldId, eventId) {
-    const data = await readEvents(directories, worldId);
-    data.events = data.events.filter(e => e.id !== eventId);
-    await writeEvents(directories, worldId, data);
+    return withLock(worldId, async () => {
+        const data = await readEvents(directories, worldId);
+        data.events = data.events.filter(e => e.id !== eventId);
+        await writeEvents(directories, worldId, data);
+    });
 }
+

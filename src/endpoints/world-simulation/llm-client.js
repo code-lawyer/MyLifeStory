@@ -63,6 +63,7 @@ export async function callLLM(messages, systemPrompt, apiConfig) {
                 ...messages,
             ],
         }),
+        signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {
@@ -109,6 +110,7 @@ export async function streamLLM(messages, systemPrompt, apiConfig, onChunk) {
                 ...messages,
             ],
         }),
+        signal: AbortSignal.timeout(120_000),
     });
 
     if (!response.ok) throw new Error(`LLM API error: ${response.status}`);

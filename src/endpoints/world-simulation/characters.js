@@ -11,7 +11,7 @@ const vId = validateIdParams('charId');
 
 function stripHidden(char) {
     if (!char) return char;
-    const { hidden_traits, ...safe } = char;
+    const { hidden_traits: _hidden_traits, ...safe } = char;
     return safe;
 }
 
@@ -93,7 +93,7 @@ router.put('/:charId', vId, async (req, res) => {
     try {
         if (!req.body?.name) return res.status(400).json({ error: 'missing_fields' });
         if (req.body.id && req.body.id !== req.params.charId) return res.status(400).json({ error: 'id_mismatch' });
-        const { hidden_traits: _, ...body } = req.body;
+        const { hidden_traits: _ht, ...body } = req.body;
         const existing = await readCharacter(req.user.directories, req.params.charId);
         const updated = { ...existing, ...body, id: req.params.charId };
         if (existing?.hidden_traits) updated.hidden_traits = existing.hidden_traits;

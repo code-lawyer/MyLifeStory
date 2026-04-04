@@ -93,7 +93,7 @@ router.get('/:worldId/export', vId, async (req, res) => {
         const world = await readWorld(req.user.directories, req.params.worldId);
         if (!world) return res.status(404).json({ error: 'world_not_found' });
         const characters = (await listCharacters(req.user.directories, req.params.worldId))
-            .map(({ hidden_traits, ...c }) => c);
+            .map(({ hidden_traits: _ht, ...c }) => c);
         const scenesData = await readScenes(req.user.directories, req.params.worldId);
         const bundle = { _type: 'mylifestory_world', world, characters, scenes: scenesData.scenes || [] };
         const safeName = sanitize(world.name || world.id, { replacement: '_' }).slice(0, 50);
@@ -206,7 +206,7 @@ router.post('/:worldId/npc-drift', vId, async (req, res) => {
                     },
                 };
                 await writeCharacter(req.user.directories, charId, updated);
-                const { hidden_traits, ...safe } = updated;
+                const { hidden_traits: _ht, ...safe } = updated;
                 return safe;
             } catch (err) {
                 console.warn(`[npc-drift] failed for ${charId}:`, err.message);

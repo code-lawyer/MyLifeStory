@@ -150,7 +150,8 @@ export default function WorldPage() {
   useEffect(() => {
     if (chatBlocks.length === 0 || chatStreaming) return;
     try {
-      localStorage.setItem(`world-sim-chat-${worldId}`, JSON.stringify(chatBlocks));
+      const trimmed = chatBlocks.slice(-50);
+      localStorage.setItem(`world-sim-chat-${worldId}`, JSON.stringify(trimmed));
     } catch { /* ignore quota */ }
   }, [worldId, chatBlocks, chatStreaming]);
 
