@@ -112,7 +112,7 @@ export default function CreateWorldPage() {
           /* Draft step — three columns on wide screens */
           <div>
             <p className="text-xs text-ink/40 mb-6">对任意区块点击「细化」可以追加描述，让 AI 重新调整该部分</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
               {Object.entries(SECTION_LABELS).map(([key, label]) => (
                 <DraftBlock
                   key={key}

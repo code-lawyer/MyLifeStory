@@ -1,8 +1,7 @@
 import express from 'express';
 import { readRelationships, writeRelationships } from './storage/relationships.js';
 import { readCharacter } from './storage/characters.js';
-import { callLLM } from './llm-client.js';
-import { parseLLMJson } from './llm-helpers.js';
+import { callLLMForJson, LLMError } from './llm-helpers.js';
 import { fmtEvent } from './format-helpers.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 
@@ -58,20 +57,19 @@ router.post('/:worldId/:charId/evaluate', vIds, async (req, res) => {
         const currentFamiliarity = data.relationships?.[req.params.charId]?.familiarity || 0;
 
         const chatSnippet = messages.map(m => `${m.role}: ${m.content}`).join('\n');
-        let raw;
+        let parsed;
         try {
-            raw = await callLLM(
+            parsed = await callLLMForJson(
                 [{ role: 'user', content: `Current familiarity: ${currentFamiliarity}/100\n\nRecent dialogue:\n${chatSnippet}` }],
                 EVALUATE_SYSTEM,
                 apiConfig,
             );
-        } catch {
-            return res.json({ familiarity: currentFamiliarity, delta: 0, reason: 'llm_unavailable' });
+        } catch (err) {
+            if (err instanceof LLMError) {
+                return res.json({ familiarity: currentFamiliarity, delta: 0, reason: 'llm_unavailable' });
+            }
+            throw err;
         }
-
-        let parsed;
-        try { parsed = parseLLMJson(raw); }
-        catch { return res.json({ familiarity: currentFamiliarity, delta: 0, reason: 'parse_failed' }); }
 
         const delta = Math.max(0, Math.min(5, parseInt(parsed.delta) || 0));
         const newFamiliarity = Math.min(100, currentFamiliarity + delta);
@@ -123,9 +121,8 @@ router.post('/:worldId/event-drift', vId, async (req, res) => {
                     fmtEvent(event),
                 ].join('\n');
 
-                const raw = await callLLM([{ role: 'user', content: userMessage }], EVENT_DRIFT_SYSTEM, apiConfig);
-                const parsed = parseLLMJson(raw);
-                const delta = Math.max(-5, Math.min(5, parseInt(parsed.delta) || 0));
+                const parsed = await callLLMForJson([{ role: 'user', content: userMessage }], EVENT_DRIFT_SYSTEM, apiConfig);
+                const delta = Math.max(-5, Math.min(5, parseInt(parsed?.delta) || 0));
                 const newFamiliarity = Math.max(0, Math.min(100, currentFamiliarity + delta));
                 return { charId, familiarity: newFamiliarity, delta, prev: data.relationships?.[charId] || {} };
             } catch {

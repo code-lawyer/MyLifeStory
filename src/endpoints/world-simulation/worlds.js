@@ -6,7 +6,8 @@ import { readWorld, writeWorld, listWorlds, deleteWorld } from './storage/worlds
 import { listCharacters, readCharacter, writeCharacter } from './storage/characters.js';
 import { readScenes, writeScenes } from './storage/scenes.js';
 import { validateIdParams, isValidId } from './validate-id.js';
-import { callLLM } from './llm-client.js';
+import { callLLMForText } from './llm-helpers.js';
+import { callLLM } from './llm-client.js'; // kept for npc-drift parallel processing
 import { fmtEvent } from './format-helpers.js';
 
 export const router = express.Router();
@@ -129,12 +130,8 @@ router.post('/:worldId/narrate', vId, async (req, res) => {
             fmtEvent(event, '最新事件'),
         ].join('\n\n');
 
-        let newSummary;
-        try {
-            newSummary = (await callLLM([{ role: 'user', content: userMessage }], NARRATE_SYSTEM, apiConfig)).trim();
-        } catch {
-            return res.status(502).json({ error: 'llm_unavailable' });
-        }
+        const newSummary = await callLLMForText([{ role: 'user', content: userMessage }], NARRATE_SYSTEM, apiConfig, res);
+        if (newSummary === null) return; // 502 already sent
 
         if (!newSummary) return res.json(world);
 

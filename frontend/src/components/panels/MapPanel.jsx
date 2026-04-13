@@ -23,10 +23,10 @@ export default function MapPanel({ worldId, scenes, onClose, onEnter }) {
         {scenes.map((scene) => (
           <li key={scene.id}>
             <button
-              className={`w-full text-left px-2 py-1.5 text-sm rounded ${
+              className={`w-full text-left px-3 py-2.5 text-sm rounded ${
                 scene.is_locked
                   ? 'text-ink/30 cursor-not-allowed'
-                  : 'text-ink/70 hover:text-ink hover:bg-ink/5'
+                  : 'text-ink/70 hover:text-ink hover:bg-ink/5 focus-visible:text-ink focus-visible:bg-ink/10'
               }`}
               onClick={() => handleEnter(scene)}
               disabled={scene.is_locked}

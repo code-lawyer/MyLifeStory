@@ -4,8 +4,7 @@ import { readWorld, writeWorld } from './storage/worlds.js';
 import { readEvents } from './storage/events.js';
 import { readSummaries } from './storage/summaries.js';
 import { listCharacters } from './storage/characters.js';
-import { callLLM } from './llm-client.js';
-import { parseLLMJson } from './llm-helpers.js';
+import { callLLMForJson, callLLMForText } from './llm-helpers.js';
 import { PERIOD_LABELS } from './format-helpers.js';
 import { validateIdParams } from './validate-id.js';
 
@@ -50,12 +49,8 @@ router.post('/:worldId/update', vId, async (req, res) => {
             { role: 'user', content: JSON.stringify(recentEvents) },
         ];
 
-        let newSummary;
-        try {
-            newSummary = await callLLM(context, STATE_SYSTEM, apiConfig);
-        } catch {
-            return res.status(502).json({ error: 'llm_unavailable' });
-        }
+        const newSummary = await callLLMForText(context, STATE_SYSTEM, apiConfig, res);
+        if (newSummary === null) return; // 502 already sent
 
         world.current_state = { summary: newSummary, updated_at: new Date().toISOString(), event_count: events.events.length };
         await writeWorld(dirs, worldId, world);
@@ -108,17 +103,8 @@ router.post('/:worldId/tick', vId, async (req, res) => {
             recentEventSummary ? `近期事件：${recentEventSummary}` : '',
         ].filter(Boolean).join('\n');
 
-        let raw;
-        try {
-            raw = await callLLM([{ role: 'user', content: userMessage }], TICK_SYSTEM, apiConfig);
-        } catch {
-            return res.json({ proposal: null });
-        }
-
-        let parsed;
-        try { parsed = parseLLMJson(raw); } catch { return res.json({ proposal: null }); }
-
-        if (!parsed.significant || !parsed.title) return res.json({ proposal: null });
+        const parsed = await callLLMForJson([{ role: 'user', content: userMessage }], TICK_SYSTEM, apiConfig);
+        if (!parsed || !parsed.significant || !parsed.title) return res.json({ proposal: null });
 
         const eventDraft = {
             id: randomUUID(),

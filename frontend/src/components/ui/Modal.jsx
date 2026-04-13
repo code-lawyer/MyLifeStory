@@ -3,8 +3,11 @@ export default function Modal({ children, onBackdropClick, className = 'w-80' })
     <div
       className="fixed inset-0 bg-ink/20 flex items-center justify-center z-50"
       onClick={onBackdropClick}
+      role="presentation"
     >
       <div
+        role="dialog"
+        aria-modal="true"
         className={`bg-parchment rounded p-6 ${className}`}
         onClick={onBackdropClick ? (e) => e.stopPropagation() : undefined}
       >

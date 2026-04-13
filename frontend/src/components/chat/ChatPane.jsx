@@ -124,6 +124,7 @@ export default function ChatPane({
 
       <div className="border-t border-ink/8 px-6 py-3 flex gap-3 items-end">
         <textarea
+          aria-label="输入消息"
           className="flex-1 resize-none bg-transparent text-sm leading-relaxed placeholder:text-ink/30 focus:outline-none"
           rows={1}
           value={input}
@@ -134,7 +135,7 @@ export default function ChatPane({
         />
         <ChatExportMenu />
         <button
-          className="text-xs text-ink/40 hover:text-ink transition-colors disabled:opacity-30 pb-0.5"
+          className="text-xs text-ink/40 hover:text-ink focus-visible:text-ink focus-visible:bg-ink/5 rounded px-3 py-2 transition-colors disabled:opacity-30"
           onClick={handleSend}
           disabled={streaming || !input.trim() || !activeCharacterId}
         >

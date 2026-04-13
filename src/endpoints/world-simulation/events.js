@@ -2,8 +2,7 @@ import express from 'express';
 import { readEvents, writeEvents, appendEvent, deleteEvent } from './storage/events.js';
 import { readSummaries, writeSummaries } from './storage/summaries.js';
 import { readScenes, writeScenes } from './storage/scenes.js';
-import { callLLM } from './llm-client.js';
-import { parseLLMJson } from './llm-helpers.js';
+import { callLLMForJson, callLLMForText } from './llm-helpers.js';
 import { randomUUID } from 'node:crypto';
 import { validateIdParams } from './validate-id.js';
 
@@ -90,16 +89,8 @@ router.post('/:worldId/propose', vId, async (req, res) => {
             ? `Active characters: ${charList}\n\n${JSON.stringify(chatHistory)}`
             : JSON.stringify(chatHistory);
         const messages = [{ role: 'user', content }];
-        let raw;
-        try {
-            raw = await callLLM(messages, PROPOSE_SYSTEM, apiConfig);
-        } catch {
-            return res.status(502).json({ error: 'llm_unavailable' });
-        }
-
-        let parsed;
-        try { parsed = parseLLMJson(raw); }
-        catch { return res.status(422).json({ error: 'parse_failed' }); }
+        const parsed = await callLLMForJson(messages, PROPOSE_SYSTEM, apiConfig, res);
+        if (parsed === null) return; // 502 already sent
 
         if (!parsed.significant) return res.json({ proposal: null });
 
@@ -138,16 +129,13 @@ router.post('/:worldId/compress', vId, async (req, res) => {
 
         if (toCompress.length === 0) return res.json({ compressed: 0 });
 
-        let summaryText;
-        try {
-            summaryText = await callLLM(
-                [{ role: 'user', content: JSON.stringify(toCompress) }],
-                COMPRESS_SYSTEM,
-                apiConfig,
-            );
-        } catch {
-            return res.status(502).json({ error: 'llm_unavailable' });
-        }
+        const summaryText = await callLLMForText(
+            [{ role: 'user', content: JSON.stringify(toCompress) }],
+            COMPRESS_SYSTEM,
+            apiConfig,
+            res,
+        );
+        if (summaryText === null) return; // 502 already sent
 
         const summaries = await readSummaries(dirs, req.params.worldId);
         summaries.summaries.push({

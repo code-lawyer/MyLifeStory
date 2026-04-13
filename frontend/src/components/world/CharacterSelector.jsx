@@ -21,10 +21,10 @@ export default function CharacterSelector({ characters, selectedId, onSelect, on
               <button
                 type="button"
                 onClick={() => onSelect(isSelected ? null : c.id)}
-                className={`flex-1 text-left text-xs px-2.5 py-1.5 rounded transition-colors flex items-center justify-between min-w-0 ${
+                className={`flex-1 text-left text-xs px-2.5 py-2 rounded transition-colors flex items-center justify-between min-w-0 ${
                   isSelected
                     ? 'bg-ink/10 text-ink font-medium'
-                    : 'text-ink/40 hover:text-ink/60 hover:bg-ink/5'
+                    : 'text-ink/40 hover:text-ink/60 hover:bg-ink/5 focus-visible:text-ink focus-visible:bg-ink/5'
                 }`}
               >
                 <span className="truncate">
@@ -36,8 +36,8 @@ export default function CharacterSelector({ characters, selectedId, onSelect, on
                 <button
                   type="button"
                   onClick={() => onInfo(c)}
-                  title="查看角色详情"
-                  className="opacity-0 group-hover:opacity-100 text-[10px] text-ink/25 hover:text-ink/60 transition-all px-1 py-1.5 shrink-0"
+                  aria-label="查看角色详情"
+                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[10px] text-ink/25 hover:text-ink/60 focus-visible:text-ink transition-all px-2 py-2 rounded shrink-0"
                 >
                   ···
                 </button>

@@ -161,14 +161,14 @@ export default function WorldListPage() {
                   <button
                     type="button"
                     onClick={(e) => handleExport(e, world.id)}
-                    className="text-[10px] text-ink/30 hover:text-ink/60 transition-colors"
+                    className="text-[10px] text-ink/30 hover:text-ink/60 focus-visible:text-ink focus-visible:bg-ink/5 rounded px-2 py-2 transition-colors"
                   >
                     导出
                   </button>
                   <button
                     type="button"
                     onClick={(e) => handleDelete(e, world)}
-                    className="text-[10px] text-ink/30 hover:text-red-500 transition-colors"
+                    className="text-[10px] text-ink/30 hover:text-red-500 focus-visible:text-red-600 focus-visible:bg-red-50 rounded px-2 py-2 transition-colors"
                   >
                     删除
                   </button>

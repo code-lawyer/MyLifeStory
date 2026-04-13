@@ -25,9 +25,7 @@ import Spinner from '../components/ui/Spinner.jsx';
 import InitPlayerModal from '../components/world/InitPlayerModal.jsx';
 import InitScenesModal from '../components/world/InitScenesModal.jsx';
 import { useSettingsStore } from '../stores/settingsStore.js';
-
-const NARRATIVE_MODE_LABELS = { intimate: '亲密', ensemble: '群像', epic: '史诗' };
-const PERIOD_LABELS = { morning: '清晨', afternoon: '午后', evening: '傍晚', night: '深夜' };
+import { PERIOD_LABELS, NARRATIVE_MODE_LABELS } from '../constants/labels.js';
 
 export default function WorldPage() {
   const { worldId } = useParams();
@@ -404,11 +402,11 @@ export default function WorldPage() {
             relationships={relationships}
           />
 
-          <div className="flex flex-col gap-0.5 text-xs text-ink/40">
-            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowMap(true)}>地图</button>
-            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowProfile(true)}>状态</button>
-            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowInventory(true)}>背包</button>
-            <button className="text-left hover:text-ink/70 transition-colors py-0.5" onClick={() => setShowEventLog(true)}>事件</button>
+          <div className="flex flex-col gap-1 text-xs text-ink/40">
+            <button className="text-left hover:text-ink/70 focus-visible:text-ink focus-visible:bg-ink/5 rounded transition-colors py-2.5" onClick={() => setShowMap(true)}>地图</button>
+            <button className="text-left hover:text-ink/70 focus-visible:text-ink focus-visible:bg-ink/5 rounded transition-colors py-2.5" onClick={() => setShowProfile(true)}>状态</button>
+            <button className="text-left hover:text-ink/70 focus-visible:text-ink focus-visible:bg-ink/5 rounded transition-colors py-2.5" onClick={() => setShowInventory(true)}>背包</button>
+            <button className="text-left hover:text-ink/70 focus-visible:text-ink focus-visible:bg-ink/5 rounded transition-colors py-2.5" onClick={() => setShowEventLog(true)}>事件</button>
           </div>
         </aside>
 

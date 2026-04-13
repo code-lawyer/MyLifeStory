@@ -1,6 +1,5 @@
 import express from 'express';
-import { callLLM } from './llm-client.js';
-import { parseLLMJson } from './llm-helpers.js';
+import { callLLMForJson } from './llm-helpers.js';
 
 export const router = express.Router();
 
@@ -34,12 +33,7 @@ IMPORTANT: Respond in the same language as the character card. Respond only with
 
 async function callAndParse(req, res, systemPrompt, userContent) {
     const { apiConfig = {} } = req.body;
-    let raw;
-    try { raw = await callLLM([{ role: 'user', content: userContent }], systemPrompt, apiConfig); }
-    catch { res.status(502).json({ error: 'llm_unavailable' }); return null; }
-
-    try { return parseLLMJson(raw); }
-    catch { res.status(422).json({ error: 'parse_failed' }); return null; }
+    return callLLMForJson([{ role: 'user', content: userContent }], systemPrompt, apiConfig, res);
 }
 
 async function generate(req, res, systemPrompt, userContent) {
