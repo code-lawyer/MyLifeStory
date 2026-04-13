@@ -7,7 +7,6 @@ import { listCharacters, readCharacter, writeCharacter } from './storage/charact
 import { readScenes, writeScenes } from './storage/scenes.js';
 import { validateIdParams, isValidId } from './validate-id.js';
 import { callLLMForText } from './llm-helpers.js';
-import { callLLM } from './llm-client.js'; // kept for npc-drift parallel processing
 import { fmtEvent } from './format-helpers.js';
 
 export const router = express.Router();
@@ -186,7 +185,7 @@ router.post('/:worldId/npc-drift', vId, async (req, res) => {
 
                 let newStatus;
                 try {
-                    newStatus = (await callLLM([{ role: 'user', content: userMessage }], NPC_DRIFT_SYSTEM, apiConfig)).trim();
+                    newStatus = await callLLMForText([{ role: 'user', content: userMessage }], NPC_DRIFT_SYSTEM, apiConfig);
                 } catch (err) {
                     console.warn(`[npc-drift] LLM failed for ${charId}:`, err.message);
                     return null;

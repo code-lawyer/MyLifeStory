@@ -1,6 +1,7 @@
 // src/endpoints/world-simulation/chat.js
 import express from 'express';
-import { streamLLM, callLLM } from './llm-client.js';
+import { streamLLM } from './llm-client.js';
+import { callLLMForText } from './llm-helpers.js';
 import { PERIOD_LABELS } from './format-helpers.js';
 import { validateIdParams } from './validate-id.js';
 
@@ -54,7 +55,7 @@ router.post('/:worldId/npc-init', validateIdParams('worldId'), async (req, res) 
 
     let message;
     try {
-        message = (await callLLM([{ role: 'user', content: userMessage }], NPC_INIT_SYSTEM, apiConfig)).trim();
+        message = await callLLMForText([{ role: 'user', content: userMessage }], NPC_INIT_SYSTEM, apiConfig);
     } catch {
         return res.json({ characterId: null, characterName: null, message: null });
     }

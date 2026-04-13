@@ -125,8 +125,9 @@ router.post('/:worldId/event-drift', vId, async (req, res) => {
                 const delta = Math.max(-5, Math.min(5, parseInt(parsed?.delta) || 0));
                 const newFamiliarity = Math.max(0, Math.min(100, currentFamiliarity + delta));
                 return { charId, familiarity: newFamiliarity, delta, prev: data.relationships?.[charId] || {} };
-            } catch {
-                return null;
+            } catch (err) {
+                if (err instanceof LLMError) return null;
+                throw err;
             }
         }));
 

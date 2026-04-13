@@ -1,9 +1,8 @@
 import express from 'express';
 import { readCharacter, writeCharacter, listCharacters, deleteCharacter } from './storage/characters.js';
 import { validateIdParams, isValidId } from './validate-id.js';
-import { callLLM } from './llm-client.js';
+import { callLLMForJson } from './llm-helpers.js';
 import { DARK_SIDE_SYSTEM } from './prompts.js';
-import { parseLLMJson } from './llm-helpers.js';
 import { readRelationships, writeRelationships } from './storage/relationships.js';
 
 export const router = express.Router();
@@ -50,12 +49,11 @@ router.post('/', async (req, res) => {
         if (char.is_core && char.world_id && protagonistBio) {
             (async () => {
                 try {
-                    const raw = await callLLM(
+                    const parsed = await callLLMForJson(
                         [{ role: 'user', content: `Protagonist bio: ${protagonistBio}\nNPC: ${char.name}\nRelationship: ${char.current_state?.relationship_to_player || 'unknown'}` }],
                         INIT_FAMILIARITY_SYSTEM,
                         apiConfig || {},
                     );
-                    const parsed = parseLLMJson(raw);
                     const familiarity = Math.max(0, Math.min(100, parseInt(parsed.initial_familiarity) || 20));
 
                     const relData = await readRelationships(req.user.directories, char.world_id);
@@ -73,13 +71,12 @@ router.post('/', async (req, res) => {
         }
 
         if (char.is_core && (char.tier === 'legendary' || char.tier === 'elite') && Math.random() < 0.2) {
-            callLLM(
+            callLLMForJson(
                 [{ role: 'user', content: `NPC: ${char.name}\nDescription: ${char.identity?.description || ''}\nPersonality: ${char.identity?.personality || ''}` }],
                 DARK_SIDE_SYSTEM,
                 apiConfig || {},
-            ).then(async (raw) => {
+            ).then(async (ht) => {
                 try {
-                    const ht = parseLLMJson(raw);
                     const latest = await readCharacter(req.user.directories, char.id);
                     if (latest) await writeCharacter(req.user.directories, char.id, { ...latest, hidden_traits: ht });
                 } catch { /* skip */ }

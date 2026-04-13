@@ -1,8 +1,7 @@
 import express from 'express';
 import crypto from 'node:crypto';
-import { callLLM } from './llm-client.js';
+import { callLLMForJson } from './llm-helpers.js';
 import { DARK_SIDE_SYSTEM } from './prompts.js';
-import { parseLLMJson } from './llm-helpers.js';
 import { readCharacter, writeCharacter } from './storage/characters.js';
 import { readRelationships, writeRelationships } from './storage/relationships.js';
 
@@ -55,8 +54,7 @@ router.post('/bulk-npcs', async (req, res) => {
     for (const tier of tasks) {
         const system = NPC_TIER_PROMPTS[tier] + worldSuffix;
         try {
-            const raw = await callLLM([{ role: 'user', content: `Generate one ${tier} NPC for this world.` }], system, apiConfig);
-            const npc = parseLLMJson(raw);
+            const npc = await callLLMForJson([{ role: 'user', content: `Generate one ${tier} NPC for this world.` }], system, apiConfig);
             npc.id = crypto.randomUUID();
             npc.world_id = worldId;
             npc.tier = tier;
@@ -84,18 +82,15 @@ router.post('/bulk-npcs', async (req, res) => {
     const darkCandidates = shuffled.slice(0, darkCount);
 
     for (const npc of darkCandidates) {
-        callLLM(
+        callLLMForJson(
             [{ role: 'user', content: `NPC surface personality:\nName: ${npc.name}\nDescription: ${npc.identity?.description || ''}\nPersonality: ${npc.identity?.personality || ''}` }],
             DARK_SIDE_SYSTEM,
             apiConfig,
-        ).then(async (raw) => {
-            try {
-                const ht = parseLLMJson(raw);
-                npc.hidden_traits = ht;
-                if (req.user?.directories?.characters) {
-                    await writeCharacter(req.user.directories, npc.id, npc);
-                }
-            } catch { /* skip malformed */ }
+        ).then(async (ht) => {
+            npc.hidden_traits = ht;
+            if (req.user?.directories?.characters) {
+                await writeCharacter(req.user.directories, npc.id, npc);
+            }
         }).catch((err) => { console.warn('[generate] dark side failed for', npc.id, ':', err.message); });
     }
 
@@ -154,8 +149,7 @@ router.post('/scenes', async (req, res) => {
         let scene = null;
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             try {
-                const raw = await callLLM([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. DO NOT repeat any of these existing scene names: [${previousList}]. Create a completely different location.` }], sceneSystem, apiConfig);
-                const parsed = parseLLMJson(raw);
+                const parsed = await callLLMForJson([{ role: 'user', content: `Generate scene ${i + 1} of ${total}. DO NOT repeat any of these existing scene names: [${previousList}]. Create a completely different location.` }], sceneSystem, apiConfig);
                 if (usedNames.has(parsed.name?.trim())) continue;
                 scene = parsed;
                 break;
