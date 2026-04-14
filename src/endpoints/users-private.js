@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 
 import storage from 'node-persist';
 import express from 'express';
+import { RateLimiterMemory, RateLimiterRes } from 'rate-limiter-flexible';
 
 import { getUserAvatar, toKey, getPasswordHash, getPasswordSalt, createBackupArchive, ensurePublicDirectoriesExist, toAvatarKey } from '../users.js';
 import { SETTINGS_FILE } from '../constants.js';
@@ -11,6 +12,10 @@ import { checkForNewContent, CONTENT_TYPES } from './content-manager.js';
 import { color, Cache } from '../util.js';
 
 const RESET_CACHE = new Cache(5 * 60 * 1000);
+const resetLimiter = new RateLimiterMemory({
+    points: 3,
+    duration: 300,
+});
 
 export const router = express.Router();
 
@@ -209,6 +214,7 @@ router.post('/change-name', async (request, response) => {
 
 router.post('/reset-step1', async (request, response) => {
     try {
+        await resetLimiter.consume(request.user.profile.handle);
         const resetCode = String(crypto.randomInt(1000, 9999));
         console.log();
         console.log(color.magenta(`${request.user.profile.name}, your account reset code is: `) + color.red(resetCode));
@@ -216,6 +222,10 @@ router.post('/reset-step1', async (request, response) => {
         RESET_CACHE.set(request.user.profile.handle, resetCode);
         return response.sendStatus(204);
     } catch (error) {
+        if (error instanceof RateLimiterRes) {
+            console.warn('Reset step 1 failed: Rate limited for', request.user.profile.handle);
+            return response.status(429).json({ error: 'Too many attempts. Try again later.' });
+        }
         console.error('Recover step 1 failed:', error);
         return response.sendStatus(500);
     }
@@ -227,6 +237,8 @@ router.post('/reset-step2', async (request, response) => {
             console.warn('Recover step 2 failed: Missing required fields');
             return response.status(400).json({ error: 'Missing required fields' });
         }
+
+        await resetLimiter.consume(request.user.profile.handle);
 
         if (request.user.profile.password && request.user.profile.password !== getPasswordHash(request.body.password, request.user.profile.salt)) {
             console.warn('Recover step 2 failed: Incorrect password');
@@ -249,6 +261,10 @@ router.post('/reset-step2', async (request, response) => {
         RESET_CACHE.remove(request.user.profile.handle);
         return response.sendStatus(204);
     } catch (error) {
+        if (error instanceof RateLimiterRes) {
+            console.warn('Reset step 2 failed: Rate limited for', request.user.profile.handle);
+            return response.status(429).json({ error: 'Too many attempts. Try again later.' });
+        }
         console.error('Recover step 2 failed:', error);
         return response.sendStatus(500);
     }

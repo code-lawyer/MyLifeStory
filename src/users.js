@@ -953,7 +953,12 @@ function createRouteHandler(directoryFn) {
         try {
             const directory = directoryFn(req);
             const filePath = decodeURIComponent(req.params[0]);
-            const exists = fs.existsSync(path.join(directory, filePath));
+            const resolvedBase = path.resolve(directory);
+            const resolvedFile = path.resolve(path.join(directory, filePath));
+            if (!resolvedFile.startsWith(resolvedBase + path.sep) && resolvedFile !== resolvedBase) {
+                return res.sendStatus(403);
+            }
+            const exists = fs.existsSync(resolvedFile);
             if (!exists) {
                 return res.sendStatus(404);
             }
@@ -977,14 +982,20 @@ function createExtensionsRouteHandler(directoryFn) {
             const directory = directoryFn(req);
             const filePath = decodeURIComponent(req.params[0]);
 
-            const existsLocal = fs.existsSync(path.join(directory, filePath));
-            if (existsLocal) {
-                return res.sendFile(filePath, { root: directory });
+            const resolvedLocal = path.resolve(path.join(directory, filePath));
+            if (resolvedLocal.startsWith(path.resolve(directory) + path.sep)) {
+                const existsLocal = fs.existsSync(resolvedLocal);
+                if (existsLocal) {
+                    return res.sendFile(filePath, { root: directory });
+                }
             }
 
-            const existsGlobal = fs.existsSync(path.join(PUBLIC_DIRECTORIES.globalExtensions, filePath));
-            if (existsGlobal) {
-                return res.sendFile(filePath, { root: PUBLIC_DIRECTORIES.globalExtensions });
+            const resolvedGlobal = path.resolve(path.join(PUBLIC_DIRECTORIES.globalExtensions, filePath));
+            if (resolvedGlobal.startsWith(path.resolve(PUBLIC_DIRECTORIES.globalExtensions) + path.sep)) {
+                const existsGlobal = fs.existsSync(resolvedGlobal);
+                if (existsGlobal) {
+                    return res.sendFile(filePath, { root: PUBLIC_DIRECTORIES.globalExtensions });
+                }
             }
 
             return res.sendStatus(404);
