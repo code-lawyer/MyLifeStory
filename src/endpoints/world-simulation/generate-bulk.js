@@ -81,18 +81,21 @@ router.post('/bulk-npcs', async (req, res) => {
     const shuffled = [...eliteOrAbove].sort(() => Math.random() - 0.5);
     const darkCandidates = shuffled.slice(0, darkCount);
 
-    for (const npc of darkCandidates) {
-        callLLMForJson(
-            [{ role: 'user', content: `NPC surface personality:\nName: ${npc.name}\nDescription: ${npc.identity?.description || ''}\nPersonality: ${npc.identity?.personality || ''}` }],
-            DARK_SIDE_SYSTEM,
-            apiConfig,
-        ).then(async (ht) => {
+    await Promise.allSettled(darkCandidates.map(async (npc) => {
+        try {
+            const ht = await callLLMForJson(
+                [{ role: 'user', content: `NPC surface personality:\nName: ${npc.name}\nDescription: ${npc.identity?.description || ''}\nPersonality: ${npc.identity?.personality || ''}` }],
+                DARK_SIDE_SYSTEM,
+                apiConfig,
+            );
             npc.hidden_traits = ht;
             if (req.user?.directories?.characters) {
                 await writeCharacter(req.user.directories, npc.id, npc);
             }
-        }).catch((err) => { console.warn('[generate] dark side failed for', npc.id, ':', err.message); });
-    }
+        } catch (err) {
+            console.warn('[generate] dark side failed for', npc.id, ':', err.message);
+        }
+    }));
 
     if (req.user?.directories) {
         try {
